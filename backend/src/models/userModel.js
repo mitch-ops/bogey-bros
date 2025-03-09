@@ -1,5 +1,6 @@
 // src/models/userModel.js
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
   username: {
@@ -56,11 +57,13 @@ const userSchema = new mongoose.Schema({
     description: 'must be a date'
   }
 }, 
-{ collection: 'User' }
+{ collection: 'User', versionKey: false }
 );
 
-userSchema.pre('save', function (next) {
-  this.updatedAt = Date.now();
+userSchema.pre('save',  async function (next) {
+  if (!this.isModified('passwordHash')) return next();
+  const salt = await bcrypt.genSalt(10);
+  this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
   next();
 });
 
