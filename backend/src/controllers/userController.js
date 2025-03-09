@@ -2,7 +2,6 @@ const User = require('../models/userModel');
 
 // Get user by username
 const getUserByUsername = async (req, res) => {
-
   try {
     const user = await User.findOne({ username: req.params.username });
 
@@ -10,7 +9,7 @@ const getUserByUsername = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const { passwordHash, ...userData } = user.toObject();
+    const userData = user.toObject();
     return res.status(200).json(userData);
 
   } catch (error) {
