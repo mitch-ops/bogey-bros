@@ -59,7 +59,7 @@ const getUserInfo = async () => {
     return;
   }
   try {
-    const response = await fetch(`http://localhost:3000/api/users/${registerData.username}`, {
+    const response = await fetch(`http://localhost:3000/api/users/${registerData.email}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -73,6 +73,63 @@ const getUserInfo = async () => {
   }
 };
 
+const updateUserInfo = async () => {
+  if (!token) {
+    console.log('Please log in first!');
+    return;
+  }
+  try {
+    const response = await fetch(`http://localhost:3000/api/users/${registerData.email}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        handicap: 10,
+        stats: {
+          strokeplay: {
+            roundsPlayed: 20,
+            wins: 15,
+            losses: 5,
+            averageScore: 68
+          },
+          matchplay: {
+            roundsPlayed: 10,
+            wins: 7,
+            losses: 3
+          }
+        }
+      })
+    });
+    const data = await response.json();
+    console.log('Updated User Info:', data);
+  } catch (error) {
+    console.error('Error updating user info:', error);
+  }
+};
+
+// Delete user by email
+const deleteUser = async () => {
+  if (!token) {
+    console.log('Please log in first!');
+    return;
+  }
+  try {
+    const response = await fetch(`http://localhost:3000/api/users/${registerData.email}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    const data = await response.json();
+    console.log('Delete Response:', data);
+  } catch (error) {
+    console.error('Error deleting user:', error);
+  }
+};
+
 const main = async () => {
   console.log('Registering user...');
   await registerUser();
@@ -80,6 +137,10 @@ const main = async () => {
   await loginUser();
   console.log('\nFetching user info...');
   await getUserInfo();
+  console.log('\nUpdating user info...');
+  await updateUserInfo();
+  console.log('\nDeleting user...');
+  await deleteUser();
 };
 
 main();
