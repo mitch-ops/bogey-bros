@@ -2,6 +2,7 @@ const express = require('express');
 const connectDB = require('./config/db');
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
+const friendRoutes = require('./routes/friendRoutes');
 const dotenv = require('dotenv');
 
 dotenv.config();
@@ -14,6 +15,7 @@ connectDB();
 app.use(express.json());  // Middleware to parse JSON
 app.use(authRoutes);       // Use auth routes
 app.use(userRoutes);       // Use user routes
+app.use(friendRoutes);     // Use friend routes
 
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);

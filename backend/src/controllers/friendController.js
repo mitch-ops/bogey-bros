@@ -1,4 +1,5 @@
 const FriendRequest = require('../models/friendRequestModel');
+const User = require('../models/userModel');
 
 // POST /api/friends/requests
 // Body : { username: 'friendUsername' }
@@ -6,6 +7,7 @@ const FriendRequest = require('../models/friendRequestModel');
 const sendFriendRequest = async (req, res ) => {
     const { username } = req.body;
     const senderId = req.user.id; // From JWT
+    console.debug(senderId);
 
     // get the receiver
     const receiver = await User.findOne({ username });
@@ -20,6 +22,9 @@ const sendFriendRequest = async (req, res ) => {
     
     // Avoid sending friend request to an already friend
     const sender = await User.findById(senderId);
+    if (!sender) {
+        return res.status(404).json({ message: 'Sender not found' });
+    }
     if (sender.friends.includes(receiver._id)) {
       return res.status(400).json({ message: 'User is already your friend' });
     }
