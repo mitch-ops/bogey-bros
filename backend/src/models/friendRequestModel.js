@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const friendRequestSchema = new mongoose.Schema({
-    snederId: {
+    senderId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true,
@@ -15,8 +15,8 @@ const friendRequestSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['Pending', 'Accepted', 'Rejected'],
-        default: 'Pending',
+        enum: ['Pending', 'Accepted', 'Declined'],
+        default: 'pending',
         description: 'must be a string and is required'
     },
     createdAt: {
@@ -24,11 +24,13 @@ const friendRequestSchema = new mongoose.Schema({
         default: Date.now,
         description: 'must be a date'
     },
-    upDatedAt: {
+    updatedAt: {
         type: Date,
         default: Date.now,
         description: 'must be a date'
     }
 }, { collection: 'FriendRequest', versionKey: false });
 
-module.exports = mongoose.model('FriendRequest', friendRequestSchema);
+const FriendRequest = mongoose.model('FriendRequest', friendRequestSchema);
+
+module.exports = FriendRequest;
