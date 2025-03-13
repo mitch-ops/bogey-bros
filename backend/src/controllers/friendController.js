@@ -51,13 +51,6 @@ const sendFriendRequest = async (req, res) => {
             updatedAt: new Date()
         };
         
-        console.log('Creating friend request with data:', JSON.stringify(requestData, (key, value) => {
-            if (value instanceof mongoose.Types.ObjectId) {
-                return value.toString();
-            }
-            return value;
-        }, 2));
-        
         const request = await FriendRequest.create(requestData);
         
         return res.status(201).json({ 

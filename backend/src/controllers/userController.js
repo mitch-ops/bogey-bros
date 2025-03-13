@@ -1,4 +1,5 @@
 const User = require('../models/userModel');
+const FriendRequest = require('../models/friendRequestModel');
 
 // Get user by username
 const getUser = async (req, res) => {
@@ -56,13 +57,27 @@ const deleteUser = async (req, res) => {
   const { email } = req.params;
 
   try {
+    // Find the user by email
     const deletedUser = await User.findOneAndDelete({ email });
 
     if (!deletedUser) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    return res.status(200).json({ message: 'User deleted successfully' });
+    // Delete friend requests where the user was a sender or receiver
+    await FriendRequest.deleteMany({
+      $or: [
+        { senderId: deletedUser._id },
+        { receiverId: deletedUser._id }
+      ]
+    });
+
+    await User.updateMany(
+      { friends: deletedUser._id }, // Find users who have this user as a friend
+      { $pull: { friends: deletedUser._id } } // Remove from friends array
+    );
+
+    return res.status(200).json({ message: 'User and associated friend requests deleted successfully' });
   } catch (error) {
     console.error('Error deleting user:', error);
     return res.status(500).json({ message: 'Internal server error' });
