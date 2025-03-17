@@ -237,8 +237,8 @@ const main = async () => {
   await sendFriendRequest();
   console.log('\nUser 2 accepting friend request..')
   await acceptFriendRequest();
-  console.log('\nDeleting users...');
-  await deleteUsers();
+  // console.log('\nDeleting users...');
+  // await deleteUsers();
 };
 
 main();
