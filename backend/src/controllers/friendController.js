@@ -2,15 +2,11 @@ const { default: mongoose } = require('mongoose');
 const FriendRequest = require('../models/friendRequestModel');
 const User = require('../models/userModel');
 
-// POST /api/friends/requests
-// Body : { username: 'friendUsername' }
-// Send friend request
 const sendFriendRequest = async (req, res) => {
     try {
         const { username } = req.body;
         const senderId = req.user.userId;
         
-        // Get the receiver
         const receiver = await User.findOne({ username });
         if (!receiver) {
             return res.status(404).json({ message: 'User not found' });
@@ -31,7 +27,6 @@ const sendFriendRequest = async (req, res) => {
             return res.status(400).json({ message: 'User is already your friend' });
         }
         
-        // Existing friend request
         const existing = await FriendRequest.findOne({ 
             senderId, 
             receiverId: receiver._id, 
@@ -42,7 +37,6 @@ const sendFriendRequest = async (req, res) => {
             return res.status(400).json({ message: 'Friend request already sent' });
         }
         
-        // Create friend request matching the exact schema validation requirements
         const requestData = {
             senderId: new mongoose.Types.ObjectId(senderId),
             receiverId: new mongoose.Types.ObjectId(receiver._id.toString()),
@@ -66,48 +60,64 @@ const sendFriendRequest = async (req, res) => {
     }
 };
 
-// POST /api/friends/accept/:requestId
-// Accept friend request
 const acceptFriendRequest = async (req, res) => {
     try {
-        const { requestId } = req.params;
-        const friendRequest = await FriendRequest.findById(requestId);
-        
-        if (!friendRequest || friendRequest.receiverId.toString() !== req.user.userId) {
-            return res.status(404).json({ message: "Friend request not found" });
-        }
-        
-        // Set status to Accepted
-        friendRequest.status = 'Accepted';
-        await friendRequest.save();
-        
-        // Update the friends array for sender and receiver
-        await User.findByIdAndUpdate(friendRequest.senderId, { 
-            $addToSet: { friends: friendRequest.receiverId } 
-        });
-        
-        await User.findByIdAndUpdate(friendRequest.receiverId, { 
-            $addToSet: { friends: friendRequest.senderId } 
-        });
-        
-        return res.json({ message: "Friend request accepted" });
+      const { username } = req.body;
+      
+      const sender = await User.findOne({ username });
+      if (!sender) {
+        return res.status(404).json({ message: "Sender not found" });
+      }
+  
+      const friendRequest = await FriendRequest.findOne({ 
+        senderId: sender._id,
+        receiverId: req.user.userId,
+        status: 'Pending'  
+      });
+  
+      if (!friendRequest) {
+        return res.status(404).json({ message: "Friend request not found" });
+      }
+  
+      // Accept the friend request
+      friendRequest.status = 'Accepted';
+      await friendRequest.save();
+  
+      // Update both users' friends arrays
+      await User.findByIdAndUpdate(sender._id, { 
+        $addToSet: { friends: req.user.userId }
+      });
+  
+      await User.findByIdAndUpdate(req.user.userId, { 
+        $addToSet: { friends: sender._id }
+      });
+  
+      return res.json({ message: "Friend request accepted" });
     } catch (error) {
-        console.error('Error accepting friend request:', error);
-        return res.status(500).json({ 
-            message: 'Error accepting friend request', 
-            error: error.message 
-        });
+      console.error('Error accepting friend request:', error);
+      return res.status(500).json({ 
+        message: 'Error accepting friend request', 
+        error: error.message 
+      });
     }
-};
+  };  
 
-// POST /api/friends/reject/:requestId
-// Reject friend request
 const rejectFriendRequest = async (req, res) => {
     try {
-        const { requestId } = req.params;
-        const friendRequest = await FriendRequest.findById(requestId);
-        
-        if (!friendRequest || friendRequest.receiverId.toString() !== req.user.userId) {
+        const { username } = req.body;
+      
+        const sender = await User.findOne({ username });
+        if (!sender) {
+            return res.status(404).json({ message: "Sender not found" });
+        }
+    
+        const friendRequest = await FriendRequest.findOne({ 
+            senderId: sender._id,
+            receiverId: req.user.userId,
+            status: 'Pending'  
+        });
+
+        if (!friendRequest) {
             return res.status(404).json({ message: "Friend request not found" });
         }
         
@@ -125,14 +135,18 @@ const rejectFriendRequest = async (req, res) => {
     }
 };
 
-// GET /api/friends/requests
-// Get friend requests
 const getFriendRequests = async (req, res) => {
     try {
         const requests = await FriendRequest.find({ 
             receiverId: req.user.userId, 
             status: 'Pending'  // Capitalized to match database validation
         }).populate('senderId', 'username');
+
+        console.log(requests);
+
+        if (requests.length === 0) {
+            return res.status(404).json({ message: "No friend requests found" });
+        }
         
         return res.json(requests);
     } catch (error) {

@@ -3,8 +3,8 @@ const { getUser, updateUser, deleteUser } = require('../controllers/userControll
 const { verifyToken } = require('../controllers/authController');
 const router = express.Router();
 
-router.get('/api/users/:email', verifyToken, getUser);
-router.put('/api/users/:email', verifyToken, updateUser);
-router.delete('/api/users/:email', verifyToken, deleteUser);
+router.get('/api/user', verifyToken, getUser);
+router.put('/api/user', verifyToken, updateUser);
+router.delete('/api/user', verifyToken, deleteUser);
   
 module.exports = router;

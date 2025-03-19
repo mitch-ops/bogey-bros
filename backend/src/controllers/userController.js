@@ -4,7 +4,8 @@ const FriendRequest = require('../models/friendRequestModel');
 // Get user by username
 const getUser = async (req, res) => {
   try {
-    const user = await User.findOne({ email: req.params.email });
+    const userId = req.user.userId; 
+    const user = await User.findById(userId);
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -20,7 +21,6 @@ const getUser = async (req, res) => {
 };
 
 const updateUser = async (req, res) => {
-  const { email } = req.params;
   const updateData = { ...req.body };
 
   // Return an error if trying to update password or email
@@ -33,11 +33,12 @@ const updateUser = async (req, res) => {
   }
 
   try {
-
     updateData.updatedAt = new Date();
+    const userId = req.user.userId; 
+
     // Update user and return the new user object
-    const updatedUser = await User.findOneAndUpdate(
-      { email },
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
       { $set: updateData },
       { new: true, timestamps: false }
     );
@@ -54,11 +55,10 @@ const updateUser = async (req, res) => {
 };
 
 const deleteUser = async (req, res) => {
-  const { email } = req.params;
+  const userId = req.user.userId;
 
   try {
-    // Find the user by email
-    const deletedUser = await User.findOneAndDelete({ email });
+    const deletedUser = await User.findByIdAndDelete(userId);
 
     if (!deletedUser) {
       return res.status(404).json({ message: 'User not found' });
@@ -73,8 +73,8 @@ const deleteUser = async (req, res) => {
     });
 
     await User.updateMany(
-      { friends: deletedUser._id }, // Find users who have this user as a friend
-      { $pull: { friends: deletedUser._id } } // Remove from friends array
+      { friends: deletedUser._id }, 
+      { $pull: { friends: deletedUser._id } } // Remove from friends arrays
     );
 
     return res.status(200).json({ message: 'User and associated friend requests deleted successfully' });

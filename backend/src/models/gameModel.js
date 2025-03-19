@@ -14,10 +14,15 @@ const scoreTupleSchema = new mongoose.Schema({
 }, { _id: false });
 
 const gameSchema = new mongoose.Schema({
+  gameName: {
+    type: String,
+    required: true,
+    description: 'Name of the game'
+  },
   courseName: {
     type: String,
     required: true,
-    description: 'Name of the golf course'
+    description: 'Name of the course'
   },
   startTime: {
     type: Date,
@@ -26,8 +31,8 @@ const gameSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'in-progress', 'completed'],
-    required: true,
+    enum: ['in-progress', 'completed'],
+    default: 'in-progress',
     description: 'Current status of the game'
   },
   participants: [{

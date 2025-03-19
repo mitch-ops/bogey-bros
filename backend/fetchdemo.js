@@ -12,8 +12,15 @@ const registerData2 = {
   password: 'password1234'
 };
 
+const registerData3 = {
+  username: 'testUser3',
+  email: 'testuser3@example.com',
+  password: 'password12345'
+};
+
 let token = '';
 let token2 = '';
+let token3 = '';
 
 // Register a new user
 const registerUsers = async () => {
@@ -41,6 +48,18 @@ const registerUsers = async () => {
       console.log('User registered successfully!');
     } else {
       console.log('Registration error:', data2.message);
+    }
+    const response3 = await fetch('https://bogey-bros.onrender.com/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(registerData3)
+    });
+    const data3 = await response3.json();
+    console.log('Register Response:', data3);
+    if (data3.message === 'User registered successfully') {
+      console.log('User registered successfully!');
+    } else {
+      console.log('Registration error:', data3.message);
     }
   } catch (error) {
     console.error('Error registering user:', error);
@@ -77,6 +96,21 @@ const loginUsers = async () => {
     if (data2.token) {
       token2 = data2.token;
       console.log('Login successful! Token:', token2);
+    } else {
+      console.log('Invalid credentials');
+    }
+    const response3 = await fetch('https://bogey-bros.onrender.com/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: registerData3.email,
+        password: registerData3.password
+      })
+    });
+    const data3 = await response3.json();
+    if (data3.token) {
+      token3 = data3.token;
+      console.log('Login successful! Token:', token3);
     } else {
       console.log('Invalid credentials');
     }
@@ -154,6 +188,17 @@ const sendFriendRequest = async () => {
 
   const data = await response.json();
   console.log('Friend Request Response:', data);
+  const response2 = await fetch('https://bogey-bros.onrender.com/api/friends/request', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ username: 'testUser3' })
+  });
+
+  const data2 = await response2.json();
+  console.log('Friend Request Response:', data2);
 };
 
 const acceptFriendRequest = async () => {

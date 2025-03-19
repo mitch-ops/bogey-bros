@@ -11,8 +11,8 @@ const playInviteSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true,
-        description: 'must be an ObjectId and is required'
-    },
+        description: 'must be a valid ObjectId referencing a User and is required'
+      },
     stake: {
         type: Number,
         required: true,
@@ -23,6 +23,11 @@ const playInviteSchema = new mongoose.Schema({
         enum: ['Strokeplay', 'Matchplay'],
         required: true,
         description: 'type of betting'
+    },
+    name: {
+        type: String,
+        default: 'Unnamed Game',
+        description: 'name of the game'
     },
     course: {
         type: String,
