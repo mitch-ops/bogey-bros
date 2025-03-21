@@ -33,7 +33,6 @@ const updateUser = async (req, res) => {
   }
 
   try {
-    updateData.updatedAt = new Date();
     const userId = req.user.userId; 
 
     // Update user and return the new user object
@@ -46,6 +45,8 @@ const updateUser = async (req, res) => {
     if (!updatedUser) {
       return res.status(404).json({ message: 'User not found' });
     }
+
+    updateData.updatedAt = new Date();
 
     return res.status(200).json(updatedUser);
   } catch (error) {

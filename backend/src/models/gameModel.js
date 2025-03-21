@@ -44,6 +44,16 @@ const gameSchema = new mongoose.Schema({
   scores: {
     type: [scoreTupleSchema],
     description: 'Array of tuples each containing the hole number and the scores for each player for that hole'
+  },
+  createdAt: {
+      type: Date,
+      default: Date.now,
+      description: 'must be a date'
+  },
+  updatedAt: {
+      type: Date,
+      default: Date.now,
+      description: 'must be a date'
   }
 }, { collection: 'Game', versionKey: false });
 
