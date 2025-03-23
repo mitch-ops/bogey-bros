@@ -5,7 +5,7 @@ import * as SecureStore from 'expo-secure-store';
 interface AuthProps {
     authState?: { token: string | null; authenticated: boolean | null};
     onRegister?: (username: string, email: string, password: string) => Promise<any>;
-    onLogin?: (username: string, password: string) => Promise<any>;
+    onLogin?: (email: string, password: string) => Promise<any>;
     onLogout?: () => Promise<any>;
 }
 
@@ -51,9 +51,10 @@ export const AuthProvider = ({children}: any) => {
         }
     };
 
-    const login = async (username: string, password: string) => {
+    const login = async (email: string, password: string) => {
         try {
-            const result = await axios.post(`${API_URL}/login`, { username, password});
+            console.log(`${email} ${password}`)
+            const result = await axios.post(`${API_URL}/login`, { email, password});
 
             console.log(" file: AuthContext.tsx:59 ~ login ~ result:", result)
             setAuthState({

@@ -25,11 +25,10 @@ const Login = () => {
     // Handles the login 
     const login = async () => {
         setIsLoading(true);
-        const result = await onLogin!(username, password);
+        const result = await onLogin!(email, password);
         setIsLoading(false);
 
         if (result && result.error) {
-            console.log("Something went wrong with the login process")
             alert(result.msg);
         }
         else {
@@ -61,19 +60,16 @@ const Login = () => {
         if (result && result.error) {
             setErrorMessage(result.msg);
         } else {
-            console.log("Register successful attempting login...")
             // Log in after successful registration
             login();
         }
     };
 
     const switchToRegister = () => {
-        console.log("2");
         setRegisterFields(true);
     }
 
     const switchToLogin = () => {
-        console.log("1");
         setRegisterFields(false);
     }
 
@@ -101,8 +97,8 @@ const Login = () => {
                 <LoginScreen 
                     handleLogin={login} 
                     handleRegister={switchToRegister} 
-                    username={username} 
-                    setUsername={setUsername} 
+                    email={email} 
+                    setEmail={setEmail} 
                     password={password}
                     setPassword={setPassword}
                     isLoading={isLoading}

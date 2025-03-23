@@ -12,7 +12,7 @@ import Golfsvg from "../assets/Golfsvg.svg"
 
 const LoginScreen = ( {
     handleLogin, handleRegister, 
-    username, setUsername, 
+    email, setEmail, 
     password, setPassword,
     isLoading } ) => {
 
@@ -43,10 +43,10 @@ const LoginScreen = ( {
           />
           <TextInput
             className="flex-1 py-3 text-white"
-            placeholder="Username"
+            placeholder="Email"
             placeholderTextColor="#A9A9C8"
-            value={username}
-            onChangeText={setUsername}
+            value={email}
+            onChangeText={setEmail}
           />
         </View>
 
