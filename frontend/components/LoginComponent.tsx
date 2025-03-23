@@ -7,31 +7,14 @@ import {
   Image,
   StatusBar,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { StackNavigationProp } from "@react-navigation/stack";
-import { RootStackParamList } from "../App";
 
-// Type for our navigation
-type LoginScreenNavigationProp = StackNavigationProp<
-  RootStackParamList,
-  "Login"
->;
+import Golfsvg from "../assets/Golfsvg.svg"
 
-const LoginScreen = () => {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const navigation = useNavigation<LoginScreenNavigationProp>();
-
-  const handleLogin = () => {
-    // Implement your login logic here
-    console.log("Login with:", username, password);
-    // If successful, navigate to the main app
-    // navigation.navigate('MainApp');
-  };
-
-  const handleRegister = () => {
-    navigation.navigate("Register");
-  };
+const LoginScreen = ( {
+    handleLogin, handleRegister, 
+    username, setUsername, 
+    password, setPassword,
+    isLoading } ) => {
 
   const handleForgotPassword = () => {
     // Implement your forgot password logic
@@ -44,16 +27,9 @@ const LoginScreen = () => {
 
       <View className="flex-1 p-4">
         {/* Golf silhouettes circle */}
-        <View className="items-center my-8">
-          <View className="w-32 h-32 rounded-full bg-[#1E1E3F] justify-center items-center">
-            <Image
-              source={require("../assets/golfers-silhouette.png")}
-              className="w-24 h-12"
-              resizeMode="contain"
-            />
-          </View>
+        <View className="items-center">
+          <Golfsvg width={425} height={425}/>
         </View>
-
         {/* Login text */}
         <Text className="text-center text-white text-xl mb-6">
           Sign into your account
@@ -102,6 +78,7 @@ const LoginScreen = () => {
         <TouchableOpacity
           className="bg-[#1E1E3F] py-3 rounded-md mb-6"
           onPress={handleLogin}
+          disabled={isLoading}
         >
           <Text className="text-white text-center font-bold">Login</Text>
         </TouchableOpacity>
