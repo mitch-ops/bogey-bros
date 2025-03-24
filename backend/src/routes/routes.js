@@ -3,7 +3,7 @@ const router = express.Router();
 const { getUser, updateUser, deleteUser } = require('../controllers/userController');
 const { sendFriendRequest, acceptFriendRequest, rejectFriendRequest, getFriendRequests } = require('../controllers/friendController');
 const { verifyToken, registerUser, loginUser } = require('../controllers/authController');
-const { sendPlayInvite, acceptPlayInvite, rejectPlayInvite, getPlayInvites, updateScore } = require('../controllers/gameController');
+const { sendPlayInvite, acceptPlayInvite, rejectPlayInvite, getPlayInvites, updateScore, endGame } = require('../controllers/gameController');
 
 router.post('/api/register', registerUser);
 router.post('/api/login', loginUser);
@@ -19,5 +19,6 @@ router.post('/api/invite/accept', verifyToken, acceptPlayInvite);
 router.post('/api/invite/reject', verifyToken, rejectPlayInvite);
 router.get('/api/invite', verifyToken, getPlayInvites);
 router.put('/api/game/update', verifyToken, updateScore);
+router.post('/api/game/end', verifyToken, endGame);
 
 module.exports = router;

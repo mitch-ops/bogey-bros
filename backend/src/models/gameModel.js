@@ -1,18 +1,5 @@
 const mongoose = require('mongoose');
 
-const scoreTupleSchema = new mongoose.Schema({
-  holeNumber: {
-    type: Number,
-    required: true,
-    description: 'The hole number'
-  },
-  scores: {
-    type: [Number],
-    required: true,
-    description: 'An array of scores for each participant on this hole, in the same order as the participants array'
-  }
-}, { _id: false });
-
 const gameSchema = new mongoose.Schema({
   gameName: {
     type: String,
@@ -31,9 +18,20 @@ const gameSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['in-progress', 'completed'],
-    default: 'in-progress',
+    enum: ['In-Progress', 'Completed'],
+    default: 'In-Progress',
     description: 'Current status of the game'
+  },
+  mode: {
+    type: String,
+    enum: ['Strokeplay', 'Matchplay'],
+    required: true,
+    description: 'type of betting'
+  },
+  pot: {
+    type: Number,
+    required: true,
+    description: 'total amount of money at stake'
   },
   participants: [{
     type: mongoose.Schema.Types.ObjectId,
@@ -42,8 +40,14 @@ const gameSchema = new mongoose.Schema({
     description: 'Array of user IDs for the participants'
   }],
   scores: {
-    type: [scoreTupleSchema],
-    description: 'Array of tuples each containing the hole number and the scores for each player for that hole'
+    type: [[Number]],
+    required: true,
+    description: 'An array of scores for each participant on this hole, in the same order as the participants array'
+  },
+  totals: {
+    type: [[Number]],
+    required: true,
+    description: 'An array of score totals for each participant'
   },
   createdAt: {
       type: Date,
