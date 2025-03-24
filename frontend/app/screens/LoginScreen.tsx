@@ -9,7 +9,8 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
-import { RootStackParamList } from "../App";
+import { RootStackParamList } from "../../App";
+import Golfsvg from "../assets/Golfsvg.svg"
 
 // Type for our navigation
 type LoginScreenNavigationProp = StackNavigationProp<
@@ -44,16 +45,9 @@ const LoginScreen = () => {
 
       <View className="flex-1 p-4">
         {/* Golf silhouettes circle */}
-        <View className="items-center my-8">
-          <View className="w-32 h-32 rounded-full bg-[#1E1E3F] justify-center items-center">
-            <Image
-              source={require("../assets/golfers-silhouette.png")}
-              className="w-24 h-12"
-              resizeMode="contain"
-            />
-          </View>
+        <View className="items-center">
+          <Golfsvg width={425} height={425}/>
         </View>
-
         {/* Login text */}
         <Text className="text-center text-white text-xl mb-6">
           Sign into your account

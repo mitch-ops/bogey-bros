@@ -2,9 +2,9 @@ import { StatusBar } from "expo-status-bar";
 import { Text, View, TouchableOpacity, ImageBackground } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
-import { RootStackParamList } from "../App"; // Import the type
+import { RootStackParamList } from "../../App"; // Import the type
 import background from "../assets/background.jpg";
-import TitleCard from "../components/TitleCard";
+import TitleCard from "../../components/TitleCard";
 
 // Type for our navigation
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, "Home">;

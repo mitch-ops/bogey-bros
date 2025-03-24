@@ -10,7 +10,9 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
-import { RootStackParamList } from "../App";
+import { RootStackParamList } from "../../App";
+import Golfsvg from "../assets/Golfsvg.svg"
+import {API_URL} from "@env"
 
 // Type for our navigation
 type RegisterScreenNavigationProp = StackNavigationProp<
@@ -23,13 +25,52 @@ const RegisterScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation<RegisterScreenNavigationProp>();
 
-  const handleRegister = () => {
+  const containsEmptyFields = () => {
+    return !username || !email || !password || !confirmPassword;
+  };
+
+  const handleRegister = async () => {
     // Basic validation
-    if (password !== confirmPassword) {
-      console.log("Passwords do not match");
+    if(containsEmptyFields()) {
+      setErrorMessage('Please fill in all fields');
       return;
+    }
+    if (password !== confirmPassword) {
+      setErrorMessage('Passwords do not match');
+      return;
+    }
+    else {
+      setErrorMessage('');
+      const registerData = {
+        username: username,
+        email: email,
+        password: password
+      };
+
+      setIsLoading(true);
+      try {
+        const response = await fetch(`${API_URL}/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(registerData)
+        });
+        const data = await response.json();
+        console.log('Register Response:', data);
+        if (data.message === 'User registered successfully') {
+          console.log('User registered successfully!');
+        } else {
+          console.log('Registration error:', data.message);
+          setErrorMessage('User with email or username exists.')
+        }
+      } catch (error) {
+        console.error('Error registering user:', error);
+      } finally {
+        setIsLoading(false);
+      }
     }
 
     // Implement your registration logic here
@@ -46,14 +87,8 @@ const RegisterScreen = () => {
 
       <View className="flex-1 p-4">
         {/* Golf silhouettes circle */}
-        <View className="items-center my-6">
-          <View className="w-32 h-32 rounded-full bg-[#1E1E3F] justify-center items-center">
-            <Image
-              source={require("../assets/golfers-silhouette.png")}
-              className="w-24 h-12"
-              resizeMode="contain"
-            />
-          </View>
+        <View className="items-center">
+          <Golfsvg width={425} height={425}/>
         </View>
 
         {/* Register text */}
@@ -107,7 +142,6 @@ const RegisterScreen = () => {
             onChangeText={setPassword}
           />
         </View>
-
         {/* Confirm Password input */}
         <View className="bg-[#5D5C8D] rounded-md mb-6 flex-row items-center px-2">
           <Image
@@ -124,10 +158,18 @@ const RegisterScreen = () => {
           />
         </View>
 
+        {/* Passwords didn't match*/}
+        {errorMessage ? 
+        (<View>
+          <Text className="text-white mb-1 font-bold">{errorMessage}</Text>
+        </View>) 
+        : null
+        }
         {/* Register button */}
         <TouchableOpacity
           className="bg-[#1E1E3F] py-3 rounded-md mb-6"
           onPress={handleRegister}
+          disabled={isLoading}
         >
           <Text className="text-white text-center font-bold">Register</Text>
         </TouchableOpacity>
