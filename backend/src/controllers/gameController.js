@@ -235,29 +235,29 @@ const updateScore = async (req, res) => {
   }
 };
 
-const findWinners = (totals, arrayIndex) => {
-  let maxVal = -Infinity;
-  totals.forEach(total => {
-    if (total[arrayIndex] > maxVal) {
-      maxVal = total[arrayIndex];
-    }
-  });
-  const indices = [];
-  totals.forEach((total, index) => {
-    if (total[arrayIndex] === maxVal) {
-      indices.push(index);
-    }
-  });
-  return indices;
-};
+function findWinners(totals, arrayIndex) {
+  let minVal = Infinity;
 
-// 2) Function to calculate the transactions (returns array of { payId, receiverId, amount })
-function calculateTransactions(participants, winnersPerCategory, stake) {
-  // Convert ObjectIds to strings for internal mapping
+  for (const arr of totals) {
+    if (arr[arrayIndex] < minVal) {
+      minVal = arr[arrayIndex];
+    }
+  }
+
+  const indices = [];
+  totals.forEach((arr, idx) => {
+    if (arr[arrayIndex] === minVal) {
+      indices.push(idx);
+    }
+  });
+
+  return indices;
+}
+
+function calculateStrokeplayTransactions(participants, winnersPerCategory, stake) {
+
   const participantsStr = participants.map(oid => oid.toString());
 
-  // Tally fractional wins for each participant.
-  // For each category, each winner gets (1 / numberOfWinnersForThatCategory) win.
   const winCount = {};
   participantsStr.forEach(idStr => { winCount[idStr] = 0; });
   winnersPerCategory.forEach(winnerArray => {
@@ -272,7 +272,7 @@ function calculateTransactions(participants, winnersPerCategory, stake) {
 
   const numPlayers = participants.length;
   const totalPot = numPlayers * stake;
-  const shareAmount = totalPot / 3; // each category is worth 1/3 of the pot
+  const shareAmount = totalPot / 3; 
 
   // Calculate net = (total fractional wins * shareAmount) - stake
   const netMap = {};
@@ -356,17 +356,14 @@ const endGame = async (req, res) => {
     const winnersPerCategory = [winnersFront, winnersBack, winnersTotal];
 
     const players = game.participants;
-    // Each player contributes equally to the pot
     const stake = game.pot / players.length;
 
     console.log("Players:", players);
     console.log("Winners per category:", winnersPerCategory);
     console.log("Individual stake:", stake);
 
-    // Calculate the one-on-one transactions with the updated winners
-    const transactionsData = calculateTransactions(players, winnersPerCategory, stake);
+    const transactionsData = calculateStrokeplayTransactions(players, winnersPerCategory, stake);
 
-    // Create new Transaction objects
     const transactionObjects = [];
     for (const txData of transactionsData) {
       const newTransaction = new Transaction({
@@ -374,17 +371,15 @@ const endGame = async (req, res) => {
         payerId: txData.payId,
         receiverId: txData.receiverId,
         amount: txData.amount,
-        status: "Pending" // or "Completed", as needed
+        status: "Pending" 
       });
       transactionObjects.push(newTransaction);
     }
 
-    // Save each Transaction document
     for (const transaction of transactionObjects) {
       await transaction.save();
     }
 
-    // Mark the game as ended (or completed) and save
     game.status = "Completed";
     await game.save();
 

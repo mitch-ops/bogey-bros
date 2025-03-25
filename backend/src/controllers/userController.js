@@ -1,5 +1,7 @@
 const User = require('../models/userModel');
 const FriendRequest = require('../models/friendRequestModel');
+const Invite = require('../models/inviteModel');
+const Game = require('../models/gameModel');
 
 // Get user by username
 const getUser = async (req, res) => {
@@ -73,10 +75,37 @@ const deleteUser = async (req, res) => {
       ]
     });
 
+    await Invite.deleteMany({
+      $or: [
+        { senderId: deletedUser._id },
+        { receiverId: deletedUser._id }
+      ]
+    });
+
     await User.updateMany(
       { friends: deletedUser._id }, 
-      { $pull: { friends: deletedUser._id } } // Remove from friends arrays
+      { $pull: { friends: deletedUser._id } } 
     );
+
+    const gamesWithUser = await Game.find({ participants: deletedUser._id });
+    for (const game of gamesWithUser) {
+      const index = game.participants.findIndex(
+        (participantId) => participantId.equals(deletedUser._id)
+      );
+
+      if (index !== -1) {
+        game.participants.splice(index, 1);
+
+        game.scores.forEach((holeScores) => {
+          holeScores.splice(index, 1);
+        });
+
+        game.totals.splice(index, 1);
+
+        // Save the updated game
+        await game.save();
+      }
+    }
 
     return res.status(200).json({ message: 'User and associated friend requests deleted successfully' });
   } catch (error) {
