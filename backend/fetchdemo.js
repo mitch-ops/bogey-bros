@@ -1,289 +1,122 @@
-import fetch from 'node-fetch';
-
-const registerData = {
-  username: 'testUser',
-  email: 'testuser@example.com',
-  password: 'password123'
-};
-
-const registerData2 = {
-  username: 'testUser2',
-  email: 'testuser2@example.com',
-  password: 'password1234'
-};
-
-const registerData3 = {
-  username: 'testUser3',
-  email: 'testuser3@example.com',
-  password: 'password12345'
-};
-
-let token = '';
-let token2 = '';
-let token3 = '';
-
-// Register a new user
-const registerUsers = async () => {
-  try {
-    const response = await fetch('https://bogey-bros.onrender.com/api/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(registerData)
-    });
-    const data = await response.json();
-    console.log('Register Response:', data);
-    if (data.message === 'User registered successfully') {
-      console.log('User registered successfully!');
-    } else {
-      console.log('Registration error:', data.message);
+(async function() {
+    // Helper functions for API calls
+    async function registerUser({ username, email, password }) {
+      const res = await fetch('http://localhost:3000/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password })
+      });
+      return res.json();
     }
-    const response2 = await fetch('https://bogey-bros.onrender.com/api/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(registerData2)
-    });
-    const data2 = await response2.json();
-    console.log('Register Response:', data2);
-    if (data2.message === 'User registered successfully') {
-      console.log('User registered successfully!');
-    } else {
-      console.log('Registration error:', data2.message);
+  
+    async function loginUser({ email, password }) {
+      const res = await fetch('http://localhost:3000/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      return data.token;
     }
-    const response3 = await fetch('https://bogey-bros.onrender.com/api/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(registerData3)
-    });
-    const data3 = await response3.json();
-    console.log('Register Response:', data3);
-    if (data3.message === 'User registered successfully') {
-      console.log('User registered successfully!');
-    } else {
-      console.log('Registration error:', data3.message);
+  
+    async function sendFriendRequest(token, friendUsername) {
+      const res = await fetch('http://localhost:3000/api/friends', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ username: friendUsername })
+      });
+      return res.json();
     }
-  } catch (error) {
-    console.error('Error registering user:', error);
-  }
-};
-
-// Login user and get token
-const loginUsers = async () => {
-  try {
-    const response = await fetch('https://bogey-bros.onrender.com/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: registerData.email,
-        password: registerData.password
-      })
-    });
-    const data = await response.json();
-    if (data.token) {
-      token = data.token;
-      console.log('Login successful! Token:', token);
-    } else {
-      console.log('Invalid credentials');
+  
+    async function acceptFriendRequest(token, senderUsername) {
+      const res = await fetch('http://localhost:3000/api/friends/accept', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ username: senderUsername })
+      });
+      return res.json();
     }
-    const response2 = await fetch('https://bogey-bros.onrender.com/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: registerData2.email,
-        password: registerData2.password
-      })
-    });
-    const data2 = await response2.json();
-    if (data2.token) {
-      token2 = data2.token;
-      console.log('Login successful! Token:', token2);
-    } else {
-      console.log('Invalid credentials');
+  
+    async function sendGameInvite(token, receiverUsernames, stake, mode, name, course) {
+      const res = await fetch('http://localhost:3000/api/invite', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          receiverUsernames,
+          stake,
+          mode,
+          name,
+          course
+        })
+      });
+      return res.json();
     }
-    const response3 = await fetch('https://bogey-bros.onrender.com/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: registerData3.email,
-        password: registerData3.password
-      })
-    });
-    const data3 = await response3.json();
-    if (data3.token) {
-      token3 = data3.token;
-      console.log('Login successful! Token:', token3);
-    } else {
-      console.log('Invalid credentials');
+  
+    async function acceptGameInvite(token, senderUsername) {
+      const res = await fetch('http://localhost:3000/api/invite/accept', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ username: senderUsername })
+      });
+      return res.json();
     }
-  } catch (error) {
-    console.error('Error logging in:', error);
-  }
-};
-
-// Get user info by username
-const getUserInfo = async () => {
-  if (!token) {
-    console.log('Please log in first!');
-    return;
-  }
-  try {
-    const response = await fetch(`https://bogey-bros.onrender.com/api/users/${registerData.email}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    const data = await response.json();
-    console.log('User Info:', data);
-  } catch (error) {
-    console.error('Error fetching user info:', error);
-  }
-};
-
-const updateUserInfo = async () => {
-  if (!token) {
-    console.log('Please log in first!');
-    return;
-  }
-  try {
-    const response = await fetch(`https://bogey-bros.onrender.com/api/users/${registerData.email}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        handicap: 10,
-        stats: {
-          strokeplay: {
-            roundsPlayed: 20,
-            wins: 15,
-            losses: 5,
-            averageScore: 68
-          },
-          matchplay: {
-            roundsPlayed: 10,
-            wins: 7,
-            losses: 3
-          }
-        }
-      })
-    });
-    const data = await response.json();
-    console.log('Updated User Info:', data);
-  } catch (error) {
-    console.error('Error updating user info:', error);
-  }
-};
-
-const sendFriendRequest = async () => {
-  const response = await fetch('https://bogey-bros.onrender.com/api/friends/request', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify({ username: 'testUser2' })
-  });
-
-  const data = await response.json();
-  console.log('Friend Request Response:', data);
-  const response2 = await fetch('https://bogey-bros.onrender.com/api/friends/request', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify({ username: 'testUser3' })
-  });
-
-  const data2 = await response2.json();
-  console.log('Friend Request Response:', data2);
-};
-
-const acceptFriendRequest = async () => {
-  try {
-    // Step 1: Fetch pending friend requests to get the request ID
-    const requestsResponse = await fetch("https://bogey-bros.onrender.com/api/friends/requests", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token2}` // Use stored token
-      }
-    });
-
-    console.log("Getting user 2 friend requests...");
-
-    const requests = await requestsResponse.json();
-    if (!requests.length) {
-      console.log("No pending friend requests.");
-      return;
+  
+    // User details
+    const user1 = { username: "user1", email: "user1@example.com", password: "password1" };
+    const user2 = { username: "user2", email: "user2@example.com", password: "password2" };
+    const user3 = { username: "user3", email: "user3@example.com", password: "password3" };
+  
+    try {
+      // Register users
+      console.log("Registering users...");
+      await registerUser(user1);
+      await registerUser(user2);
+      await registerUser(user3);
+  
+      // Login users and get their tokens
+      console.log("Logging in users...");
+      const token1 = await loginUser({ email: user1.email, password: user1.password });
+      const token2 = await loginUser({ email: user2.email, password: user2.password });
+      const token3 = await loginUser({ email: user3.email, password: user3.password });
+      
+      console.log("Tokens received:");
+      console.log({ token1, token2, token3 });
+  
+      // Send friend requests from user1 to user2 and user3
+      console.log("User1 sending friend requests to user2 and user3...");
+      await sendFriendRequest(token1, user2.username);
+      await sendFriendRequest(token1, user3.username);
+  
+      // Accept friend requests (user2 and user3 accepting user1's request)
+      console.log("User2 and user3 accepting friend request from user1...");
+      await acceptFriendRequest(token2, user1.username);
+      await acceptFriendRequest(token3, user1.username);
+  
+      // User1 sends a game invite to user2 and user3
+      console.log("User1 sending a game invite to user2 and user3...");
+      // Note: mode is set to "Strokeplay" as per the provided endpoints.
+      await sendGameInvite(token1, [user2.username, user3.username], 50, "Strokeplay", "Newgame", "Newcourse");
+  
+      // User2 and user3 accept the game invite
+      console.log("User2 and user3 accepting the game invite...");
+      await acceptGameInvite(token2, user1.username);
+      await acceptGameInvite(token3, user1.username);
+  
+      console.log("All operations completed successfully.");
+    } catch (error) {
+      console.error("An error occurred:", error);
     }
-
-    const requestId = requests[0]._id; // Pick the first request (you can change logic if needed)
-    console.log("Accepting Friend Request ID:", requestId);
-
-    // Step 2: Accept the friend request
-    const response = await fetch(`https://bogey-bros.onrender.com/api/friends/accept/${requestId}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token2}`
-      }
-    });
-
-    const data = await response.json();
-    console.log("Accept Friend Request Response:", data);
-  } catch (error) {
-    console.error("Error accepting friend request:", error);
-  }
-};
-
-// Delete user by email
-const deleteUsers = async () => {
-  if (!token) {
-    console.log('Please log in first!');
-    return;
-  }
-  try {
-    const response = await fetch(`https://bogey-bros.onrender.com/api/users/${registerData.email}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    const data = await response.json();
-    console.log('Delete Response:', data);
-    const response2 = await fetch(`https://bogey-bros.onrender.com/api/users/${registerData2.email}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token2}`
-      }
-    });
-    const data2 = await response2.json();
-    console.log('Delete Response:', data2);
-  } catch (error) {
-    console.error('Error deleting user:', error);
-  }
-};
-
-const main = async () => {
-  console.log('Registering users...');
-  await registerUsers();
-  console.log('\nLogging in...');
-  await loginUsers();
-  console.log('\nFetching user 1 info...');
-  await getUserInfo();
-  console.log('\nUpdating user 1 info...');
-  await updateUserInfo();
-  console.log('\nCreating friend request from user 1 to user 2...');
-  await sendFriendRequest();
-  console.log('\nUser 2 accepting friend request..')
-  await acceptFriendRequest();
-  // console.log('\nDeleting users...');
-  // await deleteUsers();
-};
-
-main();
+  })();
+  

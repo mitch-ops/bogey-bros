@@ -37,7 +37,7 @@ const playInviteSchema = new mongoose.Schema({
     status: {
         type: String,
         enum: ['Pending', 'Accepted', 'Declined'],
-        default: 'pending',
+        default: 'Pending',
         description: 'must be a string and is required'
     },
     createdAt: {

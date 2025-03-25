@@ -1,9 +1,16 @@
 const express = require('express');
 const router = express.Router();
+const { getUser, updateUser, deleteUser } = require('../controllers/userController');
 const { sendFriendRequest, acceptFriendRequest, rejectFriendRequest, getFriendRequests } = require('../controllers/friendController');
-const { verifyToken } = require('../controllers/authController');
-const { sendPlayInvite, acceptPlayInvite, rejectPlayInvite, getPlayInvites } = require('../controllers/inviteController');
+const { verifyToken, registerUser, loginUser } = require('../controllers/authController');
+const { sendPlayInvite, acceptPlayInvite, rejectPlayInvite, getPlayInvites, updateScore, endGame } = require('../controllers/gameController');
 
+router.post('/api/register', registerUser);
+router.post('/api/login', loginUser);
+router.get('/api/user', verifyToken, getUser);
+router.put('/api/user', verifyToken, updateUser);
+router.delete('/api/user', verifyToken, deleteUser);
+router.get('/api/userById', verifyToken, getUserById);
 router.post('/api/friends', verifyToken, sendFriendRequest);
 router.post('/api/friends/accept', verifyToken, acceptFriendRequest);
 router.post('/api/friends/reject', verifyToken, rejectFriendRequest);
@@ -12,5 +19,7 @@ router.post('/api/invite', verifyToken, sendPlayInvite);
 router.post('/api/invite/accept', verifyToken, acceptPlayInvite);
 router.post('/api/invite/reject', verifyToken, rejectPlayInvite);
 router.get('/api/invite', verifyToken, getPlayInvites);
+router.put('/api/game/update', verifyToken, updateScore);
+router.post('/api/game/end', verifyToken, endGame);
 
 module.exports = router;
