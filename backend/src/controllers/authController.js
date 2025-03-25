@@ -10,10 +10,12 @@ const registerUser = async (req, res) => {
   
     try {
       // Check if user already exists
-      const existingUser = await User.findOne({ email });
-      if (existingUser) {
+      const existingUserEmail = await User.findOne({ email });
+      const existingUserUsername = await User.findOne({ username });
+      if (existingUserEmail || existingUserUsername) {
         return res.status(400).json({ message: 'User already exists' });
       }
+
   
       const newUser = new User({
         username,
