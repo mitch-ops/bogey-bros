@@ -114,4 +114,31 @@ const deleteUser = async (req, res) => {
   }
 };
 
-module.exports = { getUser, updateUser, deleteUser };
+const getUserById = async (req, res) => {
+  try {
+    const { id } = req.body;
+    
+    // Validate the ID format
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ message: 'Invalid user ID format' });
+    }
+    
+    const user = await User.findById(id);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Return only non-sensitive information
+    return res.status(200).json({
+      _id: user._id,
+      username: user.username,
+      handicap: user.handicap
+    });
+  } catch (error) {
+    console.error('Error fetching user by ID:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+module.exports = { getUser, updateUser, deleteUser, getUserById };

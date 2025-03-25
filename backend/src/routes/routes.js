@@ -10,6 +10,7 @@ router.post('/api/login', loginUser);
 router.get('/api/user', verifyToken, getUser);
 router.put('/api/user', verifyToken, updateUser);
 router.delete('/api/user', verifyToken, deleteUser);
+router.get('/api/userById', verifyToken, getUserById);
 router.post('/api/friends', verifyToken, sendFriendRequest);
 router.post('/api/friends/accept', verifyToken, acceptFriendRequest);
 router.post('/api/friends/reject', verifyToken, rejectFriendRequest);
