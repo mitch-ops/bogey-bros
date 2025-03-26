@@ -1,9 +1,14 @@
-function PlayScreen() {
+import React from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import {Text} from 'react-native';
+
+const PlayScreen = () => {
+
   return (
-    <div>
-      <text>HI</text>
-    </div>
+    <SafeAreaView>
+      <Text>Play Screen</Text>
+    </SafeAreaView>
   );
-}
+};
 
 export default PlayScreen;
