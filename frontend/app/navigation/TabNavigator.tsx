@@ -19,7 +19,7 @@ export type PlayStackParamList = {
     betEnabled: boolean;
     players: {
       id: string;
-      name: string;
+      username: string;
       avatar: string;
       handicap: number;
     }[];
