@@ -5,6 +5,7 @@ import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../../App"; // Import the type
 import background from "../assets/background.jpg";
 import TitleCard from "../../components/TitleCard";
+import React from "react";
 
 // Type for our navigation
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, "Home">;

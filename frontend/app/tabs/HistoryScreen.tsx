@@ -6,7 +6,7 @@ const HistoryScreen = () => {
 
   return (
     <SafeAreaView>
-      <Text>Play Screen</Text>
+      <Text>History Screen</Text>
     </SafeAreaView>
   );
 };
