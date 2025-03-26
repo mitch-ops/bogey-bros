@@ -27,7 +27,7 @@ const LoginScreen = () => {
     // Implement your login logic here
     console.log("Login with:", username, password);
     // If successful, navigate to the main app
-    // navigation.navigate('MainApp');
+     //navigation.navigate('MainApp');
   };
 
   const handleRegister = () => {

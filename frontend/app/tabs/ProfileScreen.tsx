@@ -1,80 +1,135 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, Image, StatusBar, TouchableOpacity } from "react-native";
-import { useAuth } from "../context/AuthContext"; // Adjust if your path is different
+import React from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  TextInput,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+  ImageBackground,
+} from "react-native";
+import golfBackground from '../../assets/GolfballBackground.png'
+import { useNavigation } from "@react-navigation/native";
+import { useAuth } from "../context/AuthContext";
 import { API_URL } from "../context/AuthContext";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { RootStackParamList } from "../../App";
 
-const ProfileScreen = () => {
-  const { authState } = useAuth();
+//Type for our navigation
+type NavigationProp = StackNavigationProp<RootStackParamList>;
+  const ProfileScreen = () => {
+    const navigation = useNavigation<NavigationProp>();
 
-  const [user, setUser] = useState<{ username: string } | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+    return (
+      <ScrollView contentContainerStyle={styles.container}>
+      
+        {/* Avatar and Name area*/}
+        <Image style={styles.avatar} source={require('../../assets/golferprofile.jpg')} />
+        <View style={styles.nameView}>
+          <Text style={styles.nameText}>Jake</Text>
+          <Text style={styles.nameText}>McCann</Text>
+        </View>
+       <TouchableOpacity style={styles.editProfile}
+          onPress={() => navigation.navigate("EditProfile")}>
+          <Text style={styles.editText}>Edit Profile</Text>
+        </TouchableOpacity>
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        if (!authState?.token) throw new Error("No token found");
+        {/* Bio Area*/}
+        <View style={styles.bioView}>
+          <Text style={styles.header}>Bio:</Text>
+          <View style={styles.bioBodyContainer}>
+            <Text style={styles.bioBodyText}>
+              ⛳️ Pro Golfer | ⛅️ Chasing Birdies{"\n"}
+              🏆 5 | 🔥 Always on Par{"\n"}
+              📍 Dallas | 💪 Never Stop Grinding{"\n"}
+              🌍 TGR Foundation{"\n"}
+              📩 DM for sponsorships & collabs
+            </Text>
+          </View>
+        </View>
 
-        console.log("📦 Fetching user with token:", authState.token);
+        {/* Handicap */}
+        <View style={styles.handicapContainer}>
+          <Text style={styles.header}>Handicap</Text>
+          <ImageBackground style={styles.handicapImage} source={golfBackground}>
+            <Text style={styles.handicapText}>23.1</Text>
+          </ImageBackground>
+        </View>
+      </ScrollView>
+    );
+  };
 
-        const response = await fetch(`${API_URL}/user`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${authState.token}`,
-            "Content-Type": "application/json",
-          },
-        });
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    alignItems: "center"
+  },
+  avatar: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    borderWidth: 4,
+    borderColor: "#434371", 
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  nameView: {
+    flexDirection: "row"
+  },
+  nameText: {
+    padding: 10,
+    fontSize: 20,
+  },
+  bioView: {
+    alignItems: "flex-start",
+    paddingTop: 20,
+    width: "90%",
+  },
+  header: {
+    padding: 5,
+    fontSize: 20,
+  },
+  bioBodyContainer: {
+    backgroundColor: "#D9D9D9",
+    padding: 10,
+    borderRadius: 10,
+    width: "100%",
+    
+  },
+  bioBodyText: {
+    fontSize: 16,
+    lineHeight: 16 * 1.3,
+  },
+  editProfile: {
+    backgroundColor: "#434371",
+    paddingHorizontal: 30,
+    padding: 2,
+    borderRadius: 5,
+  },
+  editText: {
+    fontSize: 20,
+    color: "white",
+  },
 
-        if (!response.ok) {
-          const errorBody = await response.text();
-          console.error("❌ API error:", response.status, errorBody);
-          throw new Error(`Failed to fetch user. Status: ${response.status}`);
-        }
+  handicapContainer: {
+    alignItems: "center",
+    paddingTop: 25,
+  },
 
-        const data = await response.json();
-        console.log("✅ User data:", data);
-        setUser(data);
-      } catch (err) {
-        setError((err as Error).message);
-      } finally {
-        setLoading(false);
-      }
-    };
+  handicapImage: {
+    width: 200,
+    height: 200,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 
-    if (authState?.authenticated) {
-      fetchUser();
-    }
-  }, [authState]);
+  handicapText: {
+    color: "white",
+    fontSize: 40
+  }
 
-  return (
-    <View className="flex-1 items-center pt-16">
-      <StatusBar hidden />
-      <View className="mt-10 bg-red-500 w-full h-10" />
-      <View className="border border-black">
-      <Image
-        source={require("../../assets/Avatar.png")}
-        className="w-100 h-100 rounded-full mt-10"
-      />
-      </View>
+});
 
-      {loading ? (
-        <Text className="text-black text-lg">Loading...</Text>
-      ) : error ? (
-        <Text className="text-red-400 text-lg mt-10">Error: {error}</Text>
-      ) : user ? (
-        <Text className="text-black text-lg font-bold mt-10">{user.username}</Text>
-      ) : (
-        <Text className="text-black text-lg mt-10">No user data available.</Text>
-      )}
-
-      <TouchableOpacity
-                className="bg-[#1E1E3F] py-3 rounded-md mb-6"
-                //onPress={handleEditProfile}
-              >
-                <Text className="text-white text-center font-bold">Edit Profile</Text>
-              </TouchableOpacity>
-    </View>
-
-  );
-};
 export default ProfileScreen;

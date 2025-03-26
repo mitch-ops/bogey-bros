@@ -6,7 +6,6 @@ import FriendsScreen from "../tabs/FriendsScreen";
 import PlayScreen from "../tabs/PlayScreen";
 import HistoryScreen from "../tabs/HistoryScreen";
 import ProfileScreen from "../tabs/ProfileScreen";
-
 const Tab = createBottomTabNavigator();
 
 // Define a type for Ionicons names
