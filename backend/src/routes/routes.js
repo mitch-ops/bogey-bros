@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getUser, updateUser, deleteUser } = require('../controllers/userController');
+const { getUser, updateUser, deleteUser, getUserById } = require('../controllers/userController');
 const { sendFriendRequest, acceptFriendRequest, rejectFriendRequest, getFriendRequests } = require('../controllers/friendController');
 const { verifyToken, registerUser, loginUser } = require('../controllers/authController');
 const { sendPlayInvite, acceptPlayInvite, rejectPlayInvite, getPlayInvites, updateScore, endGame } = require('../controllers/gameController');

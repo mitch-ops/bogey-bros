@@ -8,7 +8,7 @@ const TOKEN_KEY = "my-jwt";
 export interface Friend {
   id: string;
   username: string;
-  handicap?: string;
+  handicap?: number;
   avatar?: string;
 }
 
