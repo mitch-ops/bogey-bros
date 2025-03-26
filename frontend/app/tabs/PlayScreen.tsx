@@ -65,6 +65,7 @@ const PlayScreen = () => {
   const [loadingInvites, setLoadingInvites] = useState(true);
   const [invitesModalVisible, setInvitesModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [isSending, setIsSending] = useState(false);
 
   // Friend selection modal state
   const [friendSearchModalVisible, setFriendSearchModalVisible] =
@@ -159,10 +160,10 @@ const PlayScreen = () => {
   // Handle game invite acceptance
   const handleAcceptInvite = async (invite: GameInvite) => {
     try {
-      await gameService.acceptGameInvite(invite.senderUsername);
+      await gameService.acceptGameInvite(invite.senderId); // Should be username in the future
       Alert.alert(
         "Invite Accepted",
-        `You've joined ${invite.senderUsername}'s game!`
+        `You've joined ${invite.senderId}'s game!`
       );
       loadGameInvites(); // Refresh invites
     } catch (error) {
@@ -174,10 +175,10 @@ const PlayScreen = () => {
   // Handle game invite rejection
   const handleRejectInvite = async (invite: GameInvite) => {
     try {
-      await gameService.rejectGameInvite(invite.senderUsername);
+      await gameService.rejectGameInvite(invite.senderId); // Should be username in the future
       Alert.alert(
         "Invite Rejected",
-        `You've declined ${invite.senderUsername}'s game invitation.`
+        `You've declined ${invite.senderId}'s game invitation.`
       );
       loadGameInvites(); // Refresh invites
     } catch (error) {
@@ -234,29 +235,29 @@ const PlayScreen = () => {
   };
 
   // Begin a solo round (no invites needed)
-  const handleBeginSoloRound = () => {
-    if (!course) {
-      Alert.alert("Missing Course", "Please select a course for your round.");
-      return;
-    }
+  // const handleBeginSoloRound = () => {
+  //   if (!course) {
+  //     Alert.alert("Missing Course", "Please select a course for your round.");
+  //     return;
+  //   }
 
-    // For solo play, we include the current user
-    const currentUser: Friend = {
-      id: authState?.userId || "user",
-      username: authState?.username || "You",
-      handicap: authState?.handicap || 0,
-      avatar: authState?.avatar || undefined,
-    };
+  //   // For solo play, we include the current user
+  //   const currentUser: Friend = {
+  //     id: authState?.userId || "user",
+  //     username: authState?.username || "You",
+  //     handicap: authState?.handicap || 0,
+  //     avatar: authState?.avatar || undefined,
+  //   };
 
-    navigation.navigate("LiveGame", {
-      gameMode: selectedMode,
-      stake: betEnabled ? stake : 0,
-      course: course,
-      betEnabled: betEnabled,
-      players: [currentUser],
-      // gameId: null, // No actual game ID for solo play
-    });
-  };
+  //   navigation.navigate("LiveGame", {
+  //     gameMode: selectedMode,
+  //     stake: betEnabled ? stake : 0,
+  //     course: course,
+  //     betEnabled: betEnabled,
+  //     players: [currentUser],
+  //     // gameId: null, // No actual game ID for solo play
+  //   });
+  // };
 
   // Render invites modal
   const renderInvitesModal = () => (
@@ -633,40 +634,175 @@ const PlayScreen = () => {
   );
 
   // Navigate to the LiveGameScreen
-  const handleBeginRound = () => {
-    console.log("Begin Round!");
-    // Validate that all required info is provided
+  // const handleBeginRound = () => {
+  //   console.log("Begin Round!");
+  //   // Validate that all required info is provided
+  //   if (!course) {
+  //     Alert.alert("Missing Information", "Please select a course");
+  //     return;
+  //   }
+
+  //   if (friends.length === 0) {
+  //     Alert.alert("Missing Information", "Please select at least one player");
+  //     return;
+  //   }
+
+  //   // Navigate to the LiveGameScreen with all game parameters
+  //   navigation.navigate("LiveGame", {
+  //     gameMode: selectedMode,
+  //     stake: stake,
+  //     course: course,
+  //     betEnabled: betEnabled,
+  //     players: friends,
+  //   });
+  // };
+  // Updated handleBeginRound function
+  // Updated handleBeginRound that uses friend IDs instead of usernames
+  const handleBeginRound = async () => {
+    // Validate required information
     if (!course) {
-      Alert.alert("Missing Information", "Please select a course");
+      Alert.alert(
+        "Missing Information",
+        "Please select a course for your round."
+      );
       return;
     }
 
-    if (friends.length === 0) {
-      Alert.alert("Missing Information", "Please select at least one player");
+    // Ensure we have a game name
+    const effectiveGameName =
+      gameName || `${course} - ${new Date().toLocaleDateString()}`;
+
+    // For solo play (no friends selected)
+    if (selectedFriends.length === 0) {
+      try {
+        setIsSending(true);
+
+        // For solo play, send an empty array - no invites needed
+        const response = await gameService.sendGameInvites(
+          [], // Empty array - no invites sent
+          betEnabled ? stake : 0,
+          selectedMode as any,
+          effectiveGameName,
+          course
+        );
+
+        // Get the created game
+        const game = response.savedGame;
+
+        // Create a player object for the current user
+        const currentUser = {
+          id: authState?.userId || "current-user",
+          username: authState?.username || "You",
+          handicap: authState?.handicap || "0",
+          avatar: authState?.avatar,
+        };
+
+        // Navigate to the LiveGame screen
+        navigation.navigate("LiveGame", {
+          gameMode: selectedMode,
+          stake: betEnabled ? stake : 0,
+          course: course,
+          betEnabled: betEnabled,
+          players: [currentUser],
+          game: game, // Pass the entire game object
+          gameName: effectiveGameName, // To identify the game
+        });
+      } catch (error) {
+        console.error("Error creating solo game:", error);
+        Alert.alert("Error", "Failed to create game. Please try again.");
+      } finally {
+        setIsSending(false);
+      }
+
       return;
     }
 
-    // Navigate to the LiveGameScreen with all game parameters
-    navigation.navigate("LiveGame", {
-      gameMode: selectedMode,
-      stake: stake,
-      course: course,
-      betEnabled: betEnabled,
-      players: friends,
-    });
+    // Otherwise, send invites to selected friends
+    try {
+      setIsSending(true);
+
+      // Get IDs of selected friends (not usernames)
+      const friendIds = selectedFriends.map((friend) => friend.id);
+
+      // Send the invites (which will create a game on the backend)
+      // This will convert the IDs to usernames internally
+      const response = await gameService.sendGameInvites(
+        friendIds,
+        stake,
+        selectedMode as any,
+        effectiveGameName,
+        course
+      );
+
+      // Get the created game
+      const game = response.savedGame;
+
+      if (game) {
+        // Create a player object for the current user
+        const currentUser = {
+          id: authState?.userId || "current-user",
+          username: authState?.username || "You",
+          handicap: authState?.handicap || "0",
+          avatar: authState?.avatar,
+        };
+
+        // Create player objects for invited friends
+        // These are placeholders since they haven't accepted yet
+        const pendingPlayers = selectedFriends.map((friend) => ({
+          ...friend,
+          pending: true, // Mark as pending
+        }));
+
+        Alert.alert(
+          "Game Created",
+          `Invites sent to ${selectedFriends.length} players. You can start playing, and others will join as they accept.`,
+          [
+            {
+              text: "Start Now",
+              onPress: () => {
+                // Navigate to the LiveGame screen
+                navigation.navigate("LiveGame", {
+                  gameMode: selectedMode,
+                  stake: stake,
+                  course: course,
+                  betEnabled: betEnabled,
+                  players: [currentUser, ...pendingPlayers],
+                  game: game, // Pass the entire game object
+                  gameName: effectiveGameName, // To identify the game
+                });
+
+                // Clear selections
+                setSelectedFriends([]);
+              },
+            },
+            {
+              text: "Wait for Others",
+              onPress: () => {
+                // Just clear selections and stay on the current screen
+                setSelectedFriends([]);
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert(
+          "Invites Sent",
+          `Game invites sent to ${selectedFriends.length} players.`,
+          [{ text: "OK", onPress: () => setSelectedFriends([]) }]
+        );
+      }
+    } catch (error) {
+      console.error("Error sending game invites:", error);
+      Alert.alert("Error", "Failed to create game. Please try again.");
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
     <ScrollView style={{ flex: 1, padding: 20, backgroundColor: "white" }}>
       {/* Header with notifications */}
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 20,
-        }}
-      >
+      <View>
         {gameInvites.length > 0 && (
           <TouchableOpacity
             style={{
@@ -702,6 +838,24 @@ const PlayScreen = () => {
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Game name input */}
+      <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 8 }}>
+        Game Name
+      </Text>
+      <TextInput
+        style={{
+          borderWidth: 1,
+          borderColor: "#ccc",
+          borderRadius: 8,
+          padding: 10,
+          marginBottom: 16,
+        }}
+        placeholder="Enter game name..."
+        value={gameName}
+        onChangeText={setGameName}
+      />
+
       {/* Bet Toggle */}
       <View
         style={{
@@ -738,57 +892,67 @@ const PlayScreen = () => {
       </View>
 
       {/* Select Mode */}
-      <Text style={{ fontWeight: "bold", fontSize: 16 }}>Select Mode</Text>
-      <View
-        style={{
-          flexDirection: "row",
-          flexWrap: "wrap",
-          justifyContent: "space-between",
-          marginVertical: 10,
-        }}
-      >
-        {["Strokeplay", "Matchplay", "Skin", "Wolf"].map((mode) => (
-          <TouchableOpacity
-            key={mode}
-            onPress={() => setSelectedMode(mode)}
+      {betEnabled && (
+        <>
+          <Text style={{ fontWeight: "bold", fontSize: 16 }}>Select Mode</Text>
+          <View
             style={{
-              paddingVertical: 10,
-              paddingHorizontal: 16,
-              borderRadius: 20,
-              backgroundColor: selectedMode === mode ? "#494373" : "#ddd",
-              margin: 4,
+              flexDirection: "row",
+              flexWrap: "wrap",
+              justifyContent: "space-between",
+              marginVertical: 10,
             }}
           >
-            <Text style={{ color: selectedMode === mode ? "white" : "black" }}>
-              {mode}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+            {["Strokeplay", "Matchplay", "Skin", "Wolf"].map((mode) => (
+              <TouchableOpacity
+                key={mode}
+                onPress={() => setSelectedMode(mode)}
+                style={{
+                  paddingVertical: 10,
+                  paddingHorizontal: 16,
+                  borderRadius: 20,
+                  backgroundColor: selectedMode === mode ? "#494373" : "#ddd",
+                  margin: 4,
+                }}
+              >
+                <Text
+                  style={{ color: selectedMode === mode ? "white" : "black" }}
+                >
+                  {mode}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </>
+      )}
 
       {/* Stake */}
-      <Text style={{ fontWeight: "bold", fontSize: 16 }}>Stake</Text>
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginVertical: 10,
-        }}
-      >
-        <TouchableOpacity
-          onPress={() => setStake(Math.max(1, stake - 1))}
-          style={{ padding: 10 }}
-        >
-          <Text style={{ fontSize: 18 }}>−</Text>
-        </TouchableOpacity>
-        <Text style={{ fontSize: 18, marginHorizontal: 10 }}>${stake}</Text>
-        <TouchableOpacity
-          onPress={() => setStake(stake + 1)}
-          style={{ padding: 10 }}
-        >
-          <Text style={{ fontSize: 18 }}>+</Text>
-        </TouchableOpacity>
-      </View>
+      {betEnabled && (
+        <>
+          <Text style={{ fontWeight: "bold", fontSize: 16 }}>Stake</Text>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginVertical: 10,
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => setStake(Math.max(1, stake - 1))}
+              style={{ padding: 10 }}
+            >
+              <Text style={{ fontSize: 18 }}>−</Text>
+            </TouchableOpacity>
+            <Text style={{ fontSize: 18, marginHorizontal: 10 }}>${stake}</Text>
+            <TouchableOpacity
+              onPress={() => setStake(stake + 1)}
+              style={{ padding: 10 }}
+            >
+              <Text style={{ fontSize: 18 }}>+</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
 
       {/* Select Course */}
       <Text style={{ fontWeight: "bold", fontSize: 16 }}>Select Course</Text>

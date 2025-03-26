@@ -7,14 +7,37 @@ const TOKEN_KEY = "my-jwt";
 // Define types
 export interface GameInvite {
   id: string;
-  senderUsername: string;
   senderId: string;
+  receiverId: string;
   stake: number;
-  mode: "Strokeplay" | "Matchplay" | "Skin" | "Wolf";
-  course: string;
+  mode: "Strokeplay" | "Matchplay";
   name: string;
-  createdAt: string;
+  course: string;
   status: "Pending" | "Accepted" | "Rejected";
+  createdAt: string;
+  updatedAt: string;
+  senderUsername?: string; // Added for UI convenience
+}
+
+export interface User {
+  _id: string;
+  username: string;
+  handicap: number;
+}
+
+export interface Game {
+  _id: string;
+  gameName: string;
+  courseName: string;
+  startTime: string;
+  status: "In-Progress" | "Completed";
+  mode: "Strokeplay" | "Matchplay";
+  pot: number;
+  participants: string[];
+  scores: number[][];
+  totals: number[][];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Player {
@@ -35,19 +58,67 @@ class GameService {
     }
   }
 
-  // Send game invites to multiple users
-  async sendGameInvites(
-    receiverUsernames: string[],
-    stake: number,
-    mode: "Strokeplay" | "Matchplay" | "Skin" | "Wolf",
-    name: string,
-    course: string
-  ): Promise<any> {
+  // Get user by ID
+  async getUserById(userId: string): Promise<User> {
     try {
       const token = await this.getToken();
 
       if (!token) {
         throw new Error("Authentication token not found");
+      }
+
+      console.log(`Fetching user info for ID: ${userId}`);
+      const response = await httpHelper.get(`/userById/${userId}`, token);
+      console.log("User data:", response);
+
+      return response;
+    } catch (error) {
+      console.error(`Error fetching user ID ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  // Convert user IDs to usernames
+  async getUsernamesByIds(userIds: string[]): Promise<string[]> {
+    try {
+      // Get usernames for all user IDs
+      const userPromises = userIds.map((id) => this.getUserById(id));
+      const users = await Promise.all(userPromises);
+
+      // Extract usernames
+      const usernames = users.map((user) => user.username);
+      console.log("Converted IDs to usernames:", usernames);
+
+      return usernames;
+    } catch (error) {
+      console.error("Error converting user IDs to usernames:", error);
+      throw error;
+    }
+  }
+
+  // Send game invites to multiple users
+  async sendGameInvites(
+    receiverUserIds: string[],
+    stake: number,
+    mode: "Strokeplay" | "Matchplay",
+    name: string,
+    course: string
+  ): Promise<{ invites: GameInvite[]; savedGame: Game }> {
+    try {
+      const token = await this.getToken();
+
+      if (!token) {
+        throw new Error("Authentication token not found");
+      }
+
+      console.log(
+        `Converting ${receiverUserIds.length} user IDs to usernames...`
+      );
+
+      // If there are no receivers (solo play), use an empty array
+      let receiverUsernames: string[] = [];
+      if (receiverUserIds.length > 0) {
+        receiverUsernames = await this.getUsernamesByIds(receiverUserIds);
       }
 
       console.log(`Sending game invites to: ${receiverUsernames.join(", ")}`);
@@ -83,22 +154,8 @@ class GameService {
       const response = await httpHelper.get("/invite", token);
       console.log("Pending game invites response:", response);
 
-      // Map the response to our GameInvite type format
-      if (Array.isArray(response)) {
-        return response.map((invite) => ({
-          id: invite._id || invite.id,
-          senderUsername: invite.senderUsername || "Unknown",
-          senderId: invite.senderId || invite.sender,
-          stake: invite.stake || 0,
-          mode: invite.mode || "Strokeplay",
-          course: invite.course || "Unknown Course",
-          name: invite.name || "Game",
-          createdAt: invite.createdAt || new Date().toISOString(),
-          status: invite.status || "Pending",
-        }));
-      }
-
-      return [];
+      // Return the response directly, assuming it's already an array of GameInvite objects
+      return response || [];
     } catch (error) {
       console.error("Error fetching pending game invites:", error);
       throw error;
@@ -106,7 +163,9 @@ class GameService {
   }
 
   // Accept a game invite
-  async acceptGameInvite(username: string): Promise<any> {
+  async acceptGameInvite(
+    username: string
+  ): Promise<{ invite: GameInvite; game: Game }> {
     try {
       const token = await this.getToken();
 
@@ -145,6 +204,37 @@ class GameService {
       return response;
     } catch (error) {
       console.error("Error rejecting game invite:", error);
+      throw error;
+    }
+  }
+
+  // Update a game's scores
+  async updateGameScores(
+    gameName: string,
+    scores: number[][],
+    totals: number[][]
+  ): Promise<Game> {
+    try {
+      const token = await this.getToken();
+
+      if (!token) {
+        throw new Error("Authentication token not found");
+      }
+
+      console.log(`Updating scores for game: ${gameName}`);
+
+      // This is a hypothetical endpoint - you would need to create this
+      // on your backend to update game scores
+      const response = await httpHelper.put("/games/update", token, {
+        gameName,
+        scores,
+        totals,
+      });
+
+      console.log("Game update response:", response);
+      return response;
+    } catch (error) {
+      console.error(`Error updating game scores for ${gameName}:`, error);
       throw error;
     }
   }
