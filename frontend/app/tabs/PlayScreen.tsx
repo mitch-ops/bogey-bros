@@ -66,6 +66,8 @@ const PlayScreen = () => {
   const [invitesModalVisible, setInvitesModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
 
   // Friend selection modal state
   const [friendSearchModalVisible, setFriendSearchModalVisible] =
@@ -157,33 +159,133 @@ const PlayScreen = () => {
     }
   };
 
-  // Handle game invite acceptance
   const handleAcceptInvite = async (invite: GameInvite) => {
     try {
-      await gameService.acceptGameInvite(invite.senderId); // Should be username in the future
-      Alert.alert(
-        "Invite Accepted",
-        `You've joined ${invite.senderId}'s game!`
-      );
-      loadGameInvites(); // Refresh invites
+      setIsAccepting(true);
+
+      console.log("Invite object:", invite);
+
+      // Extract the username string from the invite object
+      const senderUsername = invite.senderId?.username;
+
+      // Make sure we have the sender's username
+      if (!senderUsername) {
+        console.error("Missing senderUsername in invite object:", invite);
+        Alert.alert("Error", "Missing sender information. Please try again.");
+        return;
+      }
+
+      console.log(`Accepting game invite from username: ${senderUsername}`);
+
+      // Accept the invite through the API with the username string
+      const response = await gameService.acceptGameInvite(senderUsername);
+      console.log("Accept invite response:", response);
+
+      // Extract game data from the response
+      const game = response.game;
+
+      if (game) {
+        // Prepare player list
+        // Since we don't have player details from the game object,
+        // we'll create placeholder objects for now
+        const players = game.participants.map(
+          (participantId: string, index: number) => {
+            // For the current user
+            if (participantId === authState?.userId) {
+              return {
+                id: authState.userId,
+                username: authState.username || "You",
+                handicap: authState.handicap || "0",
+                avatar: authState.avatar,
+              };
+            }
+
+            // For the sender
+            if (index === 0) {
+              // Assuming first participant is the sender
+              return {
+                id: invite.senderId,
+                username: senderUsername,
+                handicap: "0", // We don't have this data
+              };
+            }
+
+            // For other participants
+            return {
+              id: participantId,
+              username: `Player ${index + 1}`, // Placeholder
+              handicap: "0", // Placeholder
+            };
+          }
+        );
+
+        // Navigate to the LiveGame screen
+        navigation.navigate("LiveGame", {
+          gameMode: game.mode,
+          stake: game.pot / game.participants.length, // Per-player stake
+          course: game.courseName,
+          betEnabled: game.pot > 0,
+          players: players,
+          game: game, // Pass the entire game object
+          gameName: game.gameName, // To identify the game
+        });
+
+        // Close the invites modal
+        setInvitesModalVisible(false);
+
+        // Refresh invites in the background
+        loadGameInvites();
+      } else {
+        // If we don't have game data, just show a success message
+        Alert.alert(
+          "Success",
+          `You've accepted ${senderUsername}'s invitation and joined the game.`
+        );
+        setInvitesModalVisible(false);
+      }
     } catch (error) {
       console.error("Error accepting game invite:", error);
       Alert.alert("Error", "Failed to accept game invite. Please try again.");
+    } finally {
+      setIsAccepting(false);
     }
   };
 
-  // Handle game invite rejection
   const handleRejectInvite = async (invite: GameInvite) => {
     try {
-      await gameService.rejectGameInvite(invite.senderId); // Should be username in the future
+      setIsRejecting(invite._id || invite.id);
+
+      console.log("Invite object:", invite);
+
+      const senderUsername = invite.senderId?.username;
+
+      // Make sure we have the sender's username
+      if (!senderUsername) {
+        console.error("Missing senderUsername in invite object:", invite);
+        Alert.alert("Error", "Missing sender information. Please try again.");
+        return;
+      }
+
+      // // Extract the username string from the invite object
+      // const senderUsername = invite.senderUsername;
+
+      console.log(`Rejecting game invite from username: ${senderUsername}`);
+
+      // Reject the invite through the API with the username string
+      await gameService.rejectGameInvite(senderUsername);
+
       Alert.alert(
         "Invite Rejected",
-        `You've declined ${invite.senderId}'s game invitation.`
+        `You've declined ${senderUsername}'s game invitation.`
       );
-      loadGameInvites(); // Refresh invites
+
+      // Refresh invites
+      loadGameInvites();
     } catch (error) {
       console.error("Error rejecting game invite:", error);
       Alert.alert("Error", "Failed to reject game invite. Please try again.");
+    } finally {
+      setIsRejecting(null);
     }
   };
 
@@ -234,31 +336,6 @@ const PlayScreen = () => {
     }
   };
 
-  // Begin a solo round (no invites needed)
-  // const handleBeginSoloRound = () => {
-  //   if (!course) {
-  //     Alert.alert("Missing Course", "Please select a course for your round.");
-  //     return;
-  //   }
-
-  //   // For solo play, we include the current user
-  //   const currentUser: Friend = {
-  //     id: authState?.userId || "user",
-  //     username: authState?.username || "You",
-  //     handicap: authState?.handicap || 0,
-  //     avatar: authState?.avatar || undefined,
-  //   };
-
-  //   navigation.navigate("LiveGame", {
-  //     gameMode: selectedMode,
-  //     stake: betEnabled ? stake : 0,
-  //     course: course,
-  //     betEnabled: betEnabled,
-  //     players: [currentUser],
-  //     // gameId: null, // No actual game ID for solo play
-  //   });
-  // };
-
   // Render invites modal
   const renderInvitesModal = () => (
     <Modal
@@ -298,106 +375,90 @@ const PlayScreen = () => {
           {loadingInvites ? (
             <ActivityIndicator size="large" color="#494373" />
           ) : gameInvites.length === 0 ? (
-            <Text
-              style={{
-                textAlign: "center",
-                marginVertical: 20,
-                color: "#666",
-              }}
-            >
+            <Text style={{ textAlign: "center", marginVertical: 20 }}>
               No pending game invitations
             </Text>
           ) : (
             <FlatList
               data={gameInvites}
               keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <View
-                  style={{
-                    padding: 15,
-                    borderBottomWidth: 1,
-                    borderBottomColor: "#eee",
-                    marginBottom: 10,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontWeight: "bold",
-                      fontSize: 16,
-                      marginBottom: 5,
-                    }}
-                  >
-                    From: {item.senderUsername}
-                  </Text>
-                  <Text
-                    style={{
-                      marginVertical: 3,
-                      color: "#555",
-                    }}
-                  >
-                    Course: {item.course}
-                  </Text>
-                  <Text
-                    style={{
-                      marginVertical: 3,
-                      color: "#555",
-                    }}
-                  >
-                    Mode: {item.mode}
-                  </Text>
-                  {item.stake > 0 && (
-                    <Text
-                      style={{
-                        marginVertical: 3,
-                        color: "#555",
-                      }}
-                    >
-                      Stake: ${item.stake}
-                    </Text>
-                  )}
+              renderItem={({ item }) => {
+                console.log("Rendering invite item:", item);
+                return (
                   <View
                     style={{
-                      flexDirection: "row",
-                      justifyContent: "flex-end",
-                      marginTop: 10,
+                      padding: 15,
+                      borderBottomWidth: 1,
+                      borderBottomColor: "#eee",
+                      marginBottom: 10,
                     }}
                   >
-                    <TouchableOpacity
-                      style={{
-                        backgroundColor: "#ccc",
-                        padding: 8,
-                        borderRadius: 5,
-                        marginRight: 10,
-                      }}
-                      onPress={() => handleRejectInvite(item)}
-                    >
-                      <Text
-                        style={{
-                          color: "#333",
-                        }}
-                      >
-                        Decline
+                    <Text style={{ fontWeight: "bold", fontSize: 16 }}>
+                      From: {item.senderId?.username || "Unknown"}
+                    </Text>
+                    <Text style={{ marginVertical: 3 }}>
+                      Course: {item.course || "Unknown Course"}
+                    </Text>
+                    <Text style={{ marginVertical: 3 }}>
+                      Mode: {item.mode || "Unknown Mode"}
+                    </Text>
+                    {item.stake > 0 && (
+                      <Text style={{ marginVertical: 3 }}>
+                        Stake: ${item.stake}
                       </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
+                    )}
+                    <View
                       style={{
-                        backgroundColor: "#494373",
-                        padding: 8,
-                        borderRadius: 5,
+                        flexDirection: "row",
+                        justifyContent: "flex-end",
+                        marginTop: 10,
                       }}
-                      onPress={() => handleAcceptInvite(item)}
                     >
-                      <Text
+                      <TouchableOpacity
                         style={{
-                          color: "white",
+                          backgroundColor: "#ccc",
+                          padding: 8,
+                          borderRadius: 5,
+                          marginRight: 10,
+                          opacity:
+                            isRejecting === item.id || isAccepting ? 0.5 : 1,
                         }}
+                        onPress={() => {
+                          console.log("Reject button pressed for:", item);
+                          handleRejectInvite(item);
+                        }}
+                        disabled={isRejecting === item.id || isAccepting}
                       >
-                        Accept
-                      </Text>
-                    </TouchableOpacity>
+                        {isRejecting === item.id ? (
+                          <ActivityIndicator size="small" color="#333" />
+                        ) : (
+                          <Text>Decline</Text>
+                        )}
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={{
+                          backgroundColor: "#494373",
+                          padding: 8,
+                          borderRadius: 5,
+                          opacity:
+                            isAccepting || isRejecting === item.id ? 0.5 : 1,
+                        }}
+                        onPress={() => {
+                          console.log("Accept button pressed for:", item);
+                          handleAcceptInvite(item);
+                        }}
+                        disabled={isAccepting || isRejecting === item.id}
+                      >
+                        {isAccepting ? (
+                          <ActivityIndicator size="small" color="white" />
+                        ) : (
+                          <Text style={{ color: "white" }}>Accept</Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                </View>
-              )}
+                );
+              }}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshing}
@@ -418,14 +479,7 @@ const PlayScreen = () => {
             }}
             onPress={() => setInvitesModalVisible(false)}
           >
-            <Text
-              style={{
-                color: "white",
-                fontWeight: "bold",
-              }}
-            >
-              Close
-            </Text>
+            <Text style={{ color: "white", fontWeight: "bold" }}>Close</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -633,31 +687,7 @@ const PlayScreen = () => {
     </Modal>
   );
 
-  // Navigate to the LiveGameScreen
-  // const handleBeginRound = () => {
-  //   console.log("Begin Round!");
-  //   // Validate that all required info is provided
-  //   if (!course) {
-  //     Alert.alert("Missing Information", "Please select a course");
-  //     return;
-  //   }
-
-  //   if (friends.length === 0) {
-  //     Alert.alert("Missing Information", "Please select at least one player");
-  //     return;
-  //   }
-
-  //   // Navigate to the LiveGameScreen with all game parameters
-  //   navigation.navigate("LiveGame", {
-  //     gameMode: selectedMode,
-  //     stake: stake,
-  //     course: course,
-  //     betEnabled: betEnabled,
-  //     players: friends,
-  //   });
-  // };
-  // Updated handleBeginRound function
-  // Updated handleBeginRound that uses friend IDs instead of usernames
+  // HandleBeginRound function
   const handleBeginRound = async () => {
     // Validate required information
     if (!course) {

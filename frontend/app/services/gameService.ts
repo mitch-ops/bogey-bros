@@ -6,8 +6,12 @@ const TOKEN_KEY = "my-jwt";
 
 // Define types
 export interface GameInvite {
-  id: string;
-  senderId: string;
+  _id: string;
+  id?: string; // Backup ID property
+  senderId: {
+    _id: string;
+    username: string;
+  };
   receiverId: string;
   stake: number;
   mode: "Strokeplay" | "Matchplay";
@@ -16,7 +20,6 @@ export interface GameInvite {
   status: "Pending" | "Accepted" | "Rejected";
   createdAt: string;
   updatedAt: string;
-  senderUsername?: string; // Added for UI convenience
 }
 
 export interface User {
