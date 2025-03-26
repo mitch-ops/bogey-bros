@@ -67,7 +67,7 @@ const PlayScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isAccepting, setIsAccepting] = useState(false);
-  const [isRejecting, setIsRejecting] = useState(false);
+  const [isRejecting, setIsRejecting] = useState<string | null>(null);
 
   // Friend selection modal state
   const [friendSearchModalVisible, setFriendSearchModalVisible] =
@@ -253,7 +253,7 @@ const PlayScreen = () => {
 
   const handleRejectInvite = async (invite: GameInvite) => {
     try {
-      setIsRejecting(invite._id || invite.id);
+      setIsRejecting(invite._id || invite.id || null);
 
       console.log("Invite object:", invite);
 
@@ -265,9 +265,6 @@ const PlayScreen = () => {
         Alert.alert("Error", "Missing sender information. Please try again.");
         return;
       }
-
-      // // Extract the username string from the invite object
-      // const senderUsername = invite.senderUsername;
 
       console.log(`Rejecting game invite from username: ${senderUsername}`);
 
@@ -381,7 +378,7 @@ const PlayScreen = () => {
           ) : (
             <FlatList
               data={gameInvites}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(item) => item.id || ""}
               renderItem={({ item }) => {
                 console.log("Rendering invite item:", item);
                 return (

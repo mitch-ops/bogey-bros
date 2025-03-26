@@ -7,7 +7,7 @@ const TOKEN_KEY = "my-jwt";
 // Define types
 export interface GameInvite {
   _id: string;
-  id?: string; // Backup ID property
+  id?: string;
   senderId: {
     _id: string;
     username: string;
@@ -212,6 +212,7 @@ class GameService {
   }
 
   // Update a game's scores
+  // Not tested yet
   async updateGameScores(
     gameName: string,
     scores: number[][],
@@ -226,8 +227,6 @@ class GameService {
 
       console.log(`Updating scores for game: ${gameName}`);
 
-      // This is a hypothetical endpoint - you would need to create this
-      // on your backend to update game scores
       const response = await httpHelper.put("/games/update", token, {
         gameName,
         scores,

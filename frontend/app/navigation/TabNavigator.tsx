@@ -23,6 +23,8 @@ export type PlayStackParamList = {
       avatar: string;
       handicap: number;
     }[];
+    game: any;
+    gameName: string;
   };
 };
 
