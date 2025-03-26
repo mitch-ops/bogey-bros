@@ -235,55 +235,53 @@ const updateScore = async (req, res) => {
   }
 };
 
+
+// finds winners given a totals array and an index
 function findWinners(totals, arrayIndex) {
   let minVal = Infinity;
-
   for (const arr of totals) {
     if (arr[arrayIndex] < minVal) {
       minVal = arr[arrayIndex];
     }
   }
-
   const indices = [];
   totals.forEach((arr, idx) => {
     if (arr[arrayIndex] === minVal) {
       indices.push(idx);
     }
   });
-
   return indices;
 }
 
-function calculateStrokeplayTransactions(participants, winnersPerCategory, stake) {
 
+// strokeplay result calculation, returns an object with debtors and creditors arrays
+function calculateStrokeplayResults(participants, winnersPerCategory, stake) {
   const participantsStr = participants.map(oid => oid.toString());
-
   const winCount = {};
   participantsStr.forEach(idStr => { winCount[idStr] = 0; });
+  
   winnersPerCategory.forEach(winnerArray => {
     const fraction = 1 / winnerArray.length;
     winnerArray.forEach(winnerId => {
-      const winnerStr = winnerId.toString();
-      if (winCount.hasOwnProperty(winnerStr)) {
-        winCount[winnerStr] += fraction;
+      const idStr = winnerId.toString();
+      if (winCount.hasOwnProperty(idStr)) {
+        winCount[idStr] += fraction;
       }
     });
   });
-
+  
   const numPlayers = participants.length;
   const totalPot = numPlayers * stake;
   const shareAmount = totalPot / 3; 
-
-  // Calculate net = (total fractional wins * shareAmount) - stake
   const netMap = {};
+  
   participantsStr.forEach(idStr => {
     const wins = winCount[idStr] || 0;
     netMap[idStr] = wins * shareAmount - stake;
   });
-
-  // Split into debtors (net < 0) and creditors (net > 0)
-  const debtors = [];
+  
   const creditors = [];
+  const debtors = [];
   for (const [idStr, net] of Object.entries(netMap)) {
     if (net > 0) {
       creditors.push({ idStr, amount: net });
@@ -291,30 +289,122 @@ function calculateStrokeplayTransactions(participants, winnersPerCategory, stake
       debtors.push({ idStr, amount: -net }); // store positive value
     }
   }
+  return { debtors, creditors };
+}
 
-  // Match up debtors and creditors to generate one-on-one transactions
+// matchplay result calculation, returns an object with debtors and creditors arrays
+function calculateMatchplayResults(players, scores, stake) {
+  const playersStr = players.map(oid => oid.toString());
+  const winCount = {};
+  playersStr.forEach(idStr => { winCount[idStr] = 0; });
+  
+  scores.forEach(scoreArray => {
+    const minScore = Math.min(...scoreArray);
+    scoreArray.forEach((score, index) => {
+      if (score === minScore) {
+        const idStr = players[index].toString();
+        winCount[idStr] += 1;
+      }
+    });
+  });
+  
+  const maxWins = Math.max(...Object.values(winCount));
+  const winners = playersStr.filter(idStr => winCount[idStr] === maxWins);
+  const numPlayers = players.length;
+  const totalPot = numPlayers * stake;
+  const winnerShare = totalPot / winners.length;
+  
+  const netMap = {};
+  playersStr.forEach(idStr => {
+    netMap[idStr] = winners.includes(idStr) ? (winnerShare - stake) : -stake;
+  });
+  
+  const creditors = [];
+  const debtors = [];
+  for (const [idStr, net] of Object.entries(netMap)) {
+    if (net > 0) {
+      creditors.push({ idStr, amount: net });
+    } else if (net < 0) {
+      debtors.push({ idStr, amount: -net });
+    }
+  }
+  return { debtors, creditors };
+}
+
+// matches up debtors and creditors
+function calculateTransactions(players, debtors, creditors) {
   const transactions = [];
   let i = 0, j = 0;
   while (i < debtors.length && j < creditors.length) {
     const debtor = debtors[i];
     const creditor = creditors[j];
     const transferAmount = Math.min(debtor.amount, creditor.amount);
-
-    // Convert string IDs back to original ObjectId from participants
-    const payId = participants.find(oid => oid.toString() === debtor.idStr);
-    const receiverId = participants.find(oid => oid.toString() === creditor.idStr);
-
+    
+    const payId = players.find(oid => oid.toString() === debtor.idStr);
+    const receiverId = players.find(oid => oid.toString() === creditor.idStr);
+    
     transactions.push({ payId, receiverId, amount: transferAmount });
-
+    
     debtor.amount -= transferAmount;
     creditor.amount -= transferAmount;
+    
     if (debtor.amount === 0) i++;
     if (creditor.amount === 0) j++;
   }
-
   return transactions;
 }
 
+// computes game results based on the game mode
+function computeGameResults(game) {
+  const players = game.participants;
+  const stake = game.pot / players.length;
+  
+  if (game.mode === "Strokeplay") {
+    const frontIndices = findWinners(game.totals, 0);
+    const backIndices = findWinners(game.totals, 1);
+    const totalIndices = findWinners(game.totals, 2);
+    
+    const winnersFront = frontIndices.map(i => game.participants[i]);
+    const winnersBack = backIndices.map(i => game.participants[i]);
+    const winnersTotal = totalIndices.map(i => game.participants[i]);
+    const winnersPerCategory = [winnersFront, winnersBack, winnersTotal];
+    
+    return calculateStrokeplayResults(players, winnersPerCategory, stake);
+  } else {
+    return calculateMatchplayResults(players, game.scores, stake);
+  }
+}
+
+// retrieves game results (debtors and creditors) without finalizing the game
+const getGameResults = async (req, res) => {
+  try {
+    const { gameName } = req.params;
+    const senderId = req.user.userId;
+    const sender = await User.findById(senderId);
+    if (!sender) {
+      return res.status(404).json({ error: "Sender not found." });
+    }
+    const game = await Game.findOne({ gameName });
+    if (!game) {
+      return res.status(404).json({ error: "Game not found." });
+    }
+
+    const userIndex = game.participants.findIndex(
+      participant => participant.toString() === sender._id.toString()
+    );
+    if (userIndex === -1) {
+      return res.status(403).json({ error: "User is not a participant of this game." });
+    }
+
+    const results = computeGameResults(game);
+    return res.json(results);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Server error." });
+  }
+};
+
+// ends the game, creates transactions, and updates the game status
 const endGame = async (req, res) => {
   try {
     const { gameName } = req.body;
@@ -329,40 +419,23 @@ const endGame = async (req, res) => {
       return res.status(404).json({ error: "Game not found." });
     }
 
-    // Ensure the one ending the game is the game's creator
+    // ensures the user ending the game is the game's creator.
     const userIndex = game.participants.findIndex(
-      (participant) => participant.toString() === sender._id.toString()
+      participant => participant.toString() === sender._id.toString()
     );
     if (userIndex === -1) {
-      return res
-        .status(403)
-        .json({ error: "User is not a participant of this game." });
+      return res.status(403).json({ error: "User is not a participant of this game." });
     }
     if (userIndex !== 0) {
-      return res
-        .status(403)
-        .json({ error: "Only the creator of a game can end it." });
+      return res.status(403).json({ error: "Only the creator of a game can end it." });
     }
-    
-    // Compute winners for each category, handling ties
-    const frontIndices = findWinners(game.totals, 0);
-    const backIndices = findWinners(game.totals, 1);
-    const totalIndices = findWinners(game.totals, 2);
-
-    // Map indices to participant ObjectIds for each category
-    const winnersFront = frontIndices.map(i => game.participants[i]);
-    const winnersBack = backIndices.map(i => game.participants[i]);
-    const winnersTotal = totalIndices.map(i => game.participants[i]);
-    const winnersPerCategory = [winnersFront, winnersBack, winnersTotal];
 
     const players = game.participants;
-    const stake = game.pot / players.length;
+    // computes the game results (debtors and creditors) 
+    const results = computeGameResults(game);
 
-    console.log("Players:", players);
-    console.log("Winners per category:", winnersPerCategory);
-    console.log("Individual stake:", stake);
-
-    const transactionsData = calculateStrokeplayTransactions(players, winnersPerCategory, stake);
+    // calculates transactions
+    const transactionsData = calculateTransactions(players, results.debtors, results.creditors);
 
     const transactionObjects = [];
     for (const txData of transactionsData) {
@@ -371,7 +444,7 @@ const endGame = async (req, res) => {
         payerId: txData.payId,
         receiverId: txData.receiverId,
         amount: txData.amount,
-        status: "Pending" 
+        status: "Pending"
       });
       transactionObjects.push(newTransaction);
     }
@@ -380,6 +453,7 @@ const endGame = async (req, res) => {
       await transaction.save();
     }
 
+    // marks the game as completed.
     game.status = "Completed";
     await game.save();
 
@@ -400,5 +474,6 @@ module.exports = {
   rejectPlayInvite,
   getPlayInvites,
   updateScore,
+  getGameResults,
   endGame
 };

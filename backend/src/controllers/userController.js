@@ -116,7 +116,7 @@ const deleteUser = async (req, res) => {
 
 const getUserById = async (req, res) => {
   try {
-    const { id } = req.body;
+    const { id } = req.params;
     
     // Validate the ID format
     if (!id.match(/^[0-9a-fA-F]{24}$/)) {

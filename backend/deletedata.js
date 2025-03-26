@@ -13,10 +13,7 @@ async function loginAndGetToken(email, password) {
   }
 
   const data = await response.json();
-  // Adjust based on how your API returns the token. For example:
-  // if data = { token: '...' } then do:
   const token = data.token; 
-  // If your API uses a different property name, adjust accordingly.
 
   if (!token) {
     throw new Error(`No token returned for ${email}`);
@@ -43,11 +40,11 @@ async function deleteUser(token, email) {
 }
 
 (async function main() {
-  const users = [
-    { email: 'user1@example.com', password: 'password1' },
-    { email: 'user2@example.com', password: 'password2' },
-    { email: 'user3@example.com', password: 'password3' },
-  ];
+  // Create an array of 10 users dynamically
+  const users = [];
+  for (let i = 1; i <= 10; i++) {
+    users.push({ email: `user${i}@example.com`, password: `password${i}` });
+  }
 
   for (const { email, password } of users) {
     try {
