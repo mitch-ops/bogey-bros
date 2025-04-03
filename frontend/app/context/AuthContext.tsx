@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { jwtDecode } from "jwt-decode";
 
 interface AuthProps {
     authState?: { token: string | null; authenticated: boolean | null};
@@ -29,19 +30,49 @@ export const AuthProvider = ({children}: any) => {
     useEffect(() => {
         const loadToken = async () => {
             const token = await SecureStore.getItemAsync(TOKEN_KEY);
-            console.log(" stored:", token)
-
+            console.log(" stored:", token);
             if (token) {
                 axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                const decoded: { exp: number } = jwtDecode(token); // Decode the token
+                const currentTime = Date.now() / 1000;
 
-                setAuthState({
-                    token: token,
-                    authenticated: true
-                });
+                if (decoded.exp > currentTime) {
+                    setAuthState({
+                        token: token,
+                        authenticated: true
+                    });
+                }
+                else {
+                    console.log("attempting logout");
+                    //Handle token expired
+                    await logout();
+                    console.log("logout successful");
+                }
             }
         }
         loadToken();
     }, [])
+
+    const ValidateSession = async () => {
+        console.log("Entered checking token");
+        try {
+            const token = await SecureStore.getItemAsync(TOKEN_KEY);
+            if (token) {
+                const decoded: { exp: number } = jwtDecode(token); // Decode the token
+                const currentTime = Date.now() / 1000;
+                console.log("Expires at", decoded.exp);
+                console.log("Currently at", currentTime);
+                if(decoded.exp < currentTime) {
+                    await logout();
+                }
+            } 
+            else {
+                await logout();
+            }
+        } catch (error) {
+            await logout();
+        }
+    };
 
     const register = async (username: string, email: string, password: string) => {
         try {

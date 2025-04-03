@@ -11,8 +11,11 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../../App";
-import Golfsvg from "../assets/Golfsvg.svg"
-import {API_URL} from "@env"
+import Golfsvg from "../assets/Golfsvg.svg";
+import Emailsvg from "../assets/email.svg";
+import Usernamesvg from "../assets/username.svg";
+import Passwordsvg from "../assets/password.svg";
+import {API_URL} from "@env";
 
 // Type for our navigation
 type RegisterScreenNavigationProp = StackNavigationProp<
@@ -50,14 +53,12 @@ const RegisterScreen = ({
 
         {/* Username input */}
         <View className="bg-[#5D5C8D] rounded-md mb-4 flex-row items-center px-2">
-          <Image
-            source={require("../assets/user-icon.png")}
-            className="w-6 h-6 mx-2"
-          />
+          <Usernamesvg width={34} height={21}/>
           <TextInput
             className="flex-1 py-3 text-white"
             placeholder="Username"
             placeholderTextColor="#A9A9C8"
+            autoCapitalize="none"
             value={username}
             onChangeText={setUsername}
           />
@@ -65,14 +66,12 @@ const RegisterScreen = ({
 
         {/* Email input */}
         <View className="bg-[#5D5C8D] rounded-md mb-4 flex-row items-center px-2">
-          <Image
-            source={require("../assets/email-icon.png")}
-            className="w-6 h-6 mx-2"
-          />
+          <Emailsvg width={35} height={25}/>
           <TextInput
             className="flex-1 py-3 text-white"
             placeholder="Email"
             placeholderTextColor="#A9A9C8"
+            autoCapitalize="none"
             keyboardType="email-address"
             value={email}
             onChangeText={setEmail}
@@ -81,10 +80,7 @@ const RegisterScreen = ({
 
         {/* Password input */}
         <View className="bg-[#5D5C8D] rounded-md mb-4 flex-row items-center px-2">
-          <Image
-            source={require("../assets/lock-icon.png")}
-            className="w-6 h-6 mx-2"
-          />
+          <Passwordsvg width={35} height={30}/>
           <TextInput
             className="flex-1 py-3 text-white"
             placeholder="Password"
@@ -96,10 +92,7 @@ const RegisterScreen = ({
         </View>
         {/* Confirm Password input */}
         <View className="bg-[#5D5C8D] rounded-md mb-6 flex-row items-center px-2">
-          <Image
-            source={require("../assets/lock-icon.png")}
-            className="w-6 h-6 mx-2"
-          />
+        <Passwordsvg width={35} height={30}/>
           <TextInput
             className="flex-1 py-3 text-white"
             placeholder="Confirm Password"

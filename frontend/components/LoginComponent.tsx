@@ -9,6 +9,8 @@ import {
 } from "react-native";
 
 import Golfsvg from "../assets/Golfsvg.svg"
+import Emailsvg from "../assets/email.svg";
+import Passwordsvg from "../assets/password.svg";
 
 const LoginScreen = ( {
     handleLogin, handleRegister, 
@@ -35,16 +37,14 @@ const LoginScreen = ( {
           Sign into your account
         </Text>
 
-        {/* Username input */}
+        {/* Email input */}
         <View className="bg-[#5D5C8D] rounded-md mb-4 flex-row items-center px-2">
-          <Image
-            source={require("../assets/user-icon.png")}
-            className="w-6 h-6 mx-2"
-          />
+        <Emailsvg width={35} height={25}/>
           <TextInput
             className="flex-1 py-3 text-white"
             placeholder="Email"
             placeholderTextColor="#A9A9C8"
+            autoCapitalize="none"
             value={email}
             onChangeText={setEmail}
           />
@@ -52,10 +52,7 @@ const LoginScreen = ( {
 
         {/* Password input */}
         <View className="bg-[#5D5C8D] rounded-md mb-2 flex-row items-center px-2">
-          <Image
-            source={require("../assets/lock-icon.png")}
-            className="w-6 h-6 mx-2"
-          />
+        <Passwordsvg width={35} height={30}/>
           <TextInput
             className="flex-1 py-3 text-white"
             placeholder="Password"
