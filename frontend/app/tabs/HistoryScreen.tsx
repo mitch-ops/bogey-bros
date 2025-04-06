@@ -1,9 +1,11 @@
-function HistoryScreen() {
+import { View, Text } from "react-native";
+
+const HistoryScreen = () => {
   return (
-    <div>
-      <text>HI</text>
-    </div>
+    <View>
+        <Text></Text>
+    </View>
   );
-}
+};
 
 export default HistoryScreen;

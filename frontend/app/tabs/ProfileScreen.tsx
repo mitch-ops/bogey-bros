@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import golfBackground from '../../assets/GolfballBackground.png'
 
-const ProfileScreen = () => {
+const ProfileScreen = ({navigation}) => {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       
@@ -21,7 +21,12 @@ const ProfileScreen = () => {
         <Text style={styles.nameText}>First name</Text>
         <Text style={styles.nameText}>Last name</Text>
       </View>
-      <TouchableOpacity style={styles.editProfile}>
+      <TouchableOpacity 
+        style={styles.editProfile} 
+        onPress={() =>
+          navigation.navigate('EditView')
+        }
+      >
         <Text style={styles.editText}>Edit Profile</Text>
       </TouchableOpacity>
 

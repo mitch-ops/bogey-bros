@@ -8,6 +8,7 @@ import PlayScreen from "../tabs/PlayScreen";
 import HistoryScreen from "../tabs/HistoryScreen";
 import ProfileScreen from "../tabs/ProfileScreen";
 import LiveGameScreen from "../screens/LiveGameScreen";
+import EditProfile from "../screens/EditProfile";
 
 // Define the type for the Play stack params
 export type PlayStackParamList = {
@@ -44,6 +45,19 @@ function PlayStackNavigator() {
         }}
       />
     </PlayStack.Navigator>
+  );
+}
+
+const ProfileStack = createStackNavigator();
+
+const ProfileStackNavigator = () => {
+  return (
+    <ProfileStack.Navigator screenOptions={({ route }) => ({
+      headerShown: false,
+    })}>
+      <ProfileStack.Screen name="ProfileView" component={ProfileScreen} />
+      <ProfileStack.Screen name="EditView" component={EditProfile} />
+    </ProfileStack.Navigator>
   );
 }
 
@@ -98,7 +112,7 @@ export default function TabNavigator() {
       />
       <Tab.Screen
         name="Profile"
-        component={ProfileScreen}
+        component={ProfileStackNavigator}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person" color={color} size={size} />
