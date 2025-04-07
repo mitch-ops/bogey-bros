@@ -16,7 +16,7 @@
       body: JSON.stringify({ email, password })
     });
     const data = await res.json();
-    return data.accessToken;
+    return data;
   }
 
   async function sendFriendRequest(token, friendUsername) {
@@ -125,14 +125,15 @@
       await registerUser(user);
     }
 
-    // Login users and get their tokens
     console.log("Logging in users...");
     const tokens = [];
+    const refreshTokens = [];  // Array to store refresh tokens
     for (let user of users) {
-      const token = await loginUser({ email: user.email, password: user.password });
-      tokens.push(token);
+      const loginResult = await loginUser({ email: user.email, password: user.password });
+      tokens.push(loginResult.accessToken);
+      refreshTokens.push(loginResult.refreshToken);
     }
-    console.log("Tokens received:", tokens);
+    console.log("Access Tokens received:", tokens);
 
     // Player 1 sends friend requests to players 2 to 10
     console.log("Player1 sending friend requests to players 2 to 10...");
@@ -179,6 +180,8 @@
     console.log("Player 1 ending the game...");
     const transactions = await endGame(tokens[0], "Newgame");
     console.log("Game results:", transactions);
+
+    console.log("Refresh Tokens Array:", refreshTokens);
 
     console.log("All operations completed successfully.");
   } catch (error) {
