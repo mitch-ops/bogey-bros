@@ -419,7 +419,7 @@ const endGame = async (req, res) => {
       return res.status(404).json({ error: "Game not found." });
     }
 
-    // ensures the user ending the game is the game's creator.
+    // ensures the user ending the game is the game's creator
     const userIndex = game.participants.findIndex(
       participant => participant.toString() === sender._id.toString()
     );

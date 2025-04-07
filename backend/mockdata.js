@@ -96,6 +96,18 @@
     return res.json();
   }  
 
+  async function endGame(token, gameName) {
+    const res = await fetch('http://localhost:3000/api/game/end', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ gameName })
+    });
+    return res.json();
+  }
+
   // Create 10 users: user1 through user10
   const users = [];
   for (let i = 1; i <= 10; i++) {
@@ -138,7 +150,7 @@
     console.log("Player1 sending a game invite to players 2 to 10...");
     const receiverUsernames = users.slice(1).map(user => user.username);
     // Note: mode is set to "Strokeplay"
-    await sendGameInvite(tokens[0], receiverUsernames, 30, "Matchplay", "Newgame", "Newcourse");
+    await sendGameInvite(tokens[0], receiverUsernames, 30, "Strokeplay", "Newgame", "Newcourse");
 
     // Players 2 to 10 accept the game invite from player1
     console.log("Players 2 to 10 accepting the game invite from player1...");
@@ -163,6 +175,10 @@
     console.log("Player 1 getting results...");
     const endResult = await getResults(tokens[0], "Newgame");
     console.log("Game results:", endResult);
+
+    console.log("Player 1 ending the game...");
+    const transactions = await endGame(tokens[0], "Newgame");
+    console.log("Game results:", transactions);
 
     console.log("All operations completed successfully.");
   } catch (error) {
