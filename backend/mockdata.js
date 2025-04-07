@@ -16,7 +16,7 @@
       body: JSON.stringify({ email, password })
     });
     const data = await res.json();
-    return data.token;
+    return data.accessToken;
   }
 
   async function sendFriendRequest(token, friendUsername) {
