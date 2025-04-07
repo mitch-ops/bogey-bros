@@ -375,33 +375,6 @@ function computeGameResults(game) {
   }
 }
 
-const getScores = async (req, res) => {
-  try {
-    const { gameName } = req.params;
-    const senderId = req.user.userId;
-    const sender = await User.findById(senderId);
-    if (!sender) {
-      return res.status(404).json({ error: "Sender not found." });
-    }
-    const game = await Game.findOne({ gameName });
-    if (!game) {
-      return res.status(404).json({ error: "Game not found." });
-    }
-
-    const userIndex = game.participants.findIndex(
-      participant => participant.toString() === sender._id.toString()
-    );
-    if (userIndex === -1) {
-      return res.status(403).json({ error: "User is not a participant of this game." });
-    }
-    const scores = game.scores;
-    return res.json(scores);
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: "Server error." });
-  }
-}
-
 // retrieves game results (debtors and creditors) without finalizing the game
 const getGameResults = async (req, res) => {
   try {
@@ -430,6 +403,33 @@ const getGameResults = async (req, res) => {
     return res.status(500).json({ error: "Server error." });
   }
 };
+
+const getScores = async (req, res) => {
+  try {
+    const { gameName } = req.params;
+    const senderId = req.user.userId;
+    const sender = await User.findById(senderId);
+    if (!sender) {
+      return res.status(404).json({ error: "Sender not found." });
+    }
+    const game = await Game.findOne({ gameName });
+    if (!game) {
+      return res.status(404).json({ error: "Game not found." });
+    }
+
+    const userIndex = game.participants.findIndex(
+      participant => participant.toString() === sender._id.toString()
+    );
+    if (userIndex === -1) {
+      return res.status(403).json({ error: "User is not a participant of this game." });
+    }
+    const scores = game.scores;
+    return res.json(scores);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Server error." });
+  }
+}
 
 // ends the game, creates transactions, and updates the game status
 const endGame = async (req, res) => {
