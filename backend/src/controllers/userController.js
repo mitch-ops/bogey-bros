@@ -2,6 +2,7 @@ const User = require('../models/userModel');
 const FriendRequest = require('../models/friendRequestModel');
 const Invite = require('../models/inviteModel');
 const Game = require('../models/gameModel');
+const Transaction = require('../models/transactionModel');
 
 // Get user by username
 const getUser = async (req, res) => {
@@ -75,6 +76,14 @@ const deleteUser = async (req, res) => {
       ]
     });
 
+    await Transaction.deleteMany({
+      status: "Completed",
+      $or: [
+        { payerId: deletedUser._id },
+        { receiverId: deletedUser._id }
+      ]
+    })
+
     await Invite.deleteMany({
       $or: [
         { senderId: deletedUser._id },
@@ -89,21 +98,24 @@ const deleteUser = async (req, res) => {
 
     const gamesWithUser = await Game.find({ participants: deletedUser._id });
     for (const game of gamesWithUser) {
-      const index = game.participants.findIndex(
-        (participantId) => participantId.equals(deletedUser._id)
-      );
+      if (game.participants.length === 1) {
+        await Game.findByIdAndDelete(game._id);
+      } else {
+          const index = game.participants.findIndex(
+            (participantId) => participantId.equals(deletedUser._id)
+          );
 
-      if (index !== -1) {
-        game.participants.splice(index, 1);
+          if (index !== -1) {
+            game.participants.splice(index, 1);
 
-        game.scores.forEach((holeScores) => {
-          holeScores.splice(index, 1);
-        });
+            game.scores.forEach((holeScores) => {
+              holeScores.splice(index, 1);
+            });
 
-        game.totals.splice(index, 1);
+            game.totals.splice(index, 1);
 
-        // Save the updated game
-        await game.save();
+            await game.save();
+          }
       }
     }
 

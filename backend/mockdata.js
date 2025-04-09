@@ -108,6 +108,29 @@
     return res.json();
   }
 
+  async function getCreditObjects(token) {
+    const res = await fetch('http://localhost:3000/api/user/credits', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    return res.json();
+  }
+
+  async function completeTransactions(token, transId) {
+    const res = await fetch('http://localhost:3000/api/user/completeTransaction', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ id: transId })
+    });
+    return res.json();
+  }
+
   // Create 10 users: user1 through user10
   const users = [];
   for (let i = 1; i <= 10; i++) {
@@ -179,6 +202,16 @@
     console.log("Player 1 ending the game...");
     const transactions = await endGame(tokens[0], "Newgame");
     console.log("Game results:", transactions);
+
+    for (const token of tokens) {
+      const creditObjects = await getCreditObjects(token);
+      const transactionIds = creditObjects.map(credit => credit._id);
+
+      for (const transId of transactionIds) {
+        const result = await completeTransactions(token, transId);
+        console.log(`Completed transaction ${transId}:`, result);
+      }
+    }
 
     console.log("All operations completed successfully.");
   } catch (error) {
