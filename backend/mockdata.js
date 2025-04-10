@@ -143,7 +143,7 @@ import { io } from "socket.io-client";
       const socket = io("http://localhost:3000");
       socket.on("connect", () => {
         console.log("Socket connected with id:", socket.id);
-        resolve(socket.id);
+        resolve({ socket, socketId: socket.id });
       });
       socket.on("connect_error", (err) => {
         reject(err);
@@ -177,12 +177,14 @@ import { io } from "socket.io-client";
     }
     console.log("Tokens received:", tokens);
 
-    // Create a socket connection for each user and store their socketIds.
+    // Create a socket connection for each user and store their socket and socketIds.
     console.log("Creating socket connections for users...");
+    const socketConnections = []; 
     const socketIds = [];
     for (let i = 0; i < users.length; i++) {
-      const sid = await createSocketForUser();
-      socketIds.push(sid);
+      const { socket, socketId } = await createSocketForUser();
+      socketConnections.push({ socket, socketId });
+      socketIds.push(socketId);
     }
     console.log("Socket IDs received:", socketIds);
 
@@ -243,6 +245,13 @@ import { io } from "socket.io-client";
     }
 
     console.log("All operations completed successfully.");
+
+    // Disconnect each user's socket connection
+    console.log("Disconnecting all socket connections...");
+    socketConnections.forEach(({ socket }) => {
+      socket.disconnect();
+      console.log(`Socket disconnected.`);
+    });
   } catch (error) {
     console.error("An error occurred:", error);
   }
