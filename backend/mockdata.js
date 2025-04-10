@@ -1,3 +1,6 @@
+// Import the Socket.IO client (this works if you have a bundler like webpack or are in an environment that supports imports)
+import { io } from "socket.io-client";
+
 (async function() {
   // Helper functions for API calls
   async function registerUser({ username, email, password }) {
@@ -43,7 +46,8 @@
     return res.json();
   }
 
-  async function sendGameInvite(token, receiverUsernames, stake, mode, name, course) {
+  // Modified: Include socketId in the payload.
+  async function sendGameInvite(token, receiverUsernames, stake, mode, name, course, socketId) {
     const res = await fetch('http://localhost:3000/api/invite', {
       method: 'POST',
       headers: { 
@@ -55,20 +59,22 @@
         stake,
         mode,
         name,
-        course
+        course,
+        socketId  // Added the socketId field
       })
     });
     return res.json();
   }
 
-  async function acceptGameInvite(token, senderUsername) {
+  // Modified: Include socketId in the payload.
+  async function acceptGameInvite(token, senderUsername, socketId) {
     const res = await fetch('http://localhost:3000/api/invite/accept', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ username: senderUsername })
+      body: JSON.stringify({ username: senderUsername, socketId }) // Added socketId
     });
     return res.json();
   }
@@ -131,6 +137,20 @@
     return res.json();
   }
 
+  // New helper: create a socket connection and return its socketId.
+  async function createSocketForUser() {
+    return new Promise((resolve, reject) => {
+      const socket = io("http://localhost:3000");
+      socket.on("connect", () => {
+        console.log("Socket connected with id:", socket.id);
+        resolve(socket.id);
+      });
+      socket.on("connect_error", (err) => {
+        reject(err);
+      });
+    });
+  }
+
   // Create 10 users: user1 through user10
   const users = [];
   for (let i = 1; i <= 10; i++) {
@@ -157,6 +177,15 @@
     }
     console.log("Tokens received:", tokens);
 
+    // Create a socket connection for each user and store their socketIds.
+    console.log("Creating socket connections for users...");
+    const socketIds = [];
+    for (let i = 0; i < users.length; i++) {
+      const sid = await createSocketForUser();
+      socketIds.push(sid);
+    }
+    console.log("Socket IDs received:", socketIds);
+
     // Player 1 sends friend requests to players 2 to 10
     console.log("Player1 sending friend requests to players 2 to 10...");
     for (let i = 1; i < users.length; i++) {
@@ -169,16 +198,16 @@
       await acceptFriendRequest(tokens[i], users[0].username);
     }
 
-    // Player1 sends a game invite to players 2 to 10
+    // Player1 sends a game invite to players 2 to 10, including their socket id
     console.log("Player1 sending a game invite to players 2 to 10...");
     const receiverUsernames = users.slice(1).map(user => user.username);
     // Note: mode is set to "Strokeplay"
-    await sendGameInvite(tokens[0], receiverUsernames, 30, "Strokeplay", "Newgame", "Newcourse");
+    await sendGameInvite(tokens[0], receiverUsernames, 30, "Strokeplay", "Newgame", "Newcourse", socketIds[0]);
 
-    // Players 2 to 10 accept the game invite from player1
+    // Players 2 to 10 accept the game invite from player1; include their socket ids
     console.log("Players 2 to 10 accepting the game invite from player1...");
     for (let i = 1; i < users.length; i++) {
-      await acceptGameInvite(tokens[i], users[0].username);
+      await acceptGameInvite(tokens[i], users[0].username, socketIds[i]);
     }
 
     // Update game scores for each hole for all 10 players
@@ -201,7 +230,7 @@
 
     console.log("Player 1 ending the game...");
     const transactions = await endGame(tokens[0], "Newgame");
-    console.log("Game results:", transactions);
+    console.log("Transaction results:", transactions);
 
     for (const token of tokens) {
       const creditObjects = await getCreditObjects(token);

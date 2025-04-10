@@ -6,7 +6,7 @@ const Transaction = require('../models/transactionModel');
 
 const sendPlayInvite = async (req, res) => {
   try {
-    const { receiverUsernames, stake, mode, name, course } = req.body;  
+    const { receiverUsernames, stake, mode, name, course, socketId } = req.body;  // Added socketId
     const senderId = req.user.userId;  
 
     const sender = await User.findById(senderId);
@@ -21,9 +21,7 @@ const sendPlayInvite = async (req, res) => {
     }
 
     const receiverIds = receivers.map(user => user._id.toString());
-
     const friendIdsAsStrings = sender.friends.map(friendId => friendId.toString());
-
     const allReceiversAreFriends = receiverIds.every(receiverId =>
       friendIdsAsStrings.includes(receiverId)
     );
@@ -62,6 +60,7 @@ const sendPlayInvite = async (req, res) => {
 
     const savedInvites = await Promise.all(invites.map(invite => invite.save()));
 
+    // Create the game with just the sender as participant
     const newGame = new Game({
       gameName: name,
       courseName: course,
@@ -70,10 +69,23 @@ const sendPlayInvite = async (req, res) => {
       pot: stake,
       participants: [senderId],
       scores: Array(18).fill().map(() => [0]),
-      totals: [[0,0,0]]
+      totals: [[0, 0, 0]]
     });
 
     const savedGame = await newGame.save();
+
+    // -- WebSocket Integration: Have the sender’s socket join the game room --
+    // If the client provided a socketId, add that socket to a room (using gameName as room identifier)
+    if (socketId) {
+      const io = req.app.get('socketio'); // Access Socket.IO instance
+      const senderSocket = io.sockets.sockets.get(socketId);
+      if (senderSocket) {
+        senderSocket.join(savedGame.gameName);
+        console.log(`Socket ${socketId} joined room ${savedGame.gameName}`);
+      } else {
+        console.warn(`Socket with id ${socketId} not found.`);
+      }
+    }
 
     res.status(201).json({ message: "Play invites sent successfully, game created successfully.", invites: savedInvites, savedGame });
   } catch (error) {
@@ -84,8 +96,7 @@ const sendPlayInvite = async (req, res) => {
 
 const acceptPlayInvite = async (req, res) => {
   try {
-    const { username } = req.body;
-
+    const { username, socketId } = req.body;  // socketId added here
     const sender = await User.findOne({ username });
     if (!sender) {
       return res.status(404).json({ message: "Sender not found" });
@@ -103,7 +114,7 @@ const acceptPlayInvite = async (req, res) => {
 
     const game = await Game.findOne({ gameName: playInvite.name });
     if (!game) {
-      return res.status(404).json({message: "Game not found"});
+      return res.status(404).json({ message: "Game not found" });
     }
 
     playInvite.status = 'Accepted';
@@ -111,9 +122,21 @@ const acceptPlayInvite = async (req, res) => {
     game.pot += playInvite.stake;
     game.participants.push(req.user.userId);
     game.scores.forEach(arr => arr.push(0));
-    game.totals.push([0,0,0]);
+    game.totals.push([0, 0, 0]);
     await playInvite.save();
     await game.save();
+
+    // -- WebSocket Integration: Have the accepted user's socket join the game room --
+    if (socketId) {
+      const io = req.app.get('socketio');
+      const receiverSocket = io.sockets.sockets.get(socketId);
+      if (receiverSocket) {
+        receiverSocket.join(game.gameName);
+        console.log(`Socket ${socketId} joined room ${game.gameName}`);
+      } else {
+        console.warn(`Socket with id ${socketId} not found.`);
+      }
+    }
 
     return res.json({ message: "Play invite accepted", invite: playInvite, game });
   } catch (error) {
@@ -185,22 +208,19 @@ const updateScore = async (req, res) => {
       return res.status(404).json({ error: "Game not found." });
     }
 
-    if (game.status == 'Completed') {
+    if (game.status === 'Completed') {
       return res.status(403).json({ error: "Game is completed and cannot be updated" });
     }
 
     // Ensure the user is a participant of this game
     const userIndex = game.participants.findIndex(
-      (participant) => participant.toString() === sender._id.toString()
+      participant => participant.toString() === sender._id.toString()
     );
     if (userIndex === -1) {
-      return res
-        .status(403)
-        .json({ error: "User is not a participant of this game." });
+      return res.status(403).json({ error: "User is not a participant of this game." });
     }
 
     const holeIndex = hole - 1; 
-
     if (holeIndex < 0 || holeIndex >= game.scores.length) {
       return res.status(400).json({ error: "Hole index out of range." });
     }
@@ -219,10 +239,17 @@ const updateScore = async (req, res) => {
     }
 
     game.scores[holeIndex][userIndex] = score;
-
     game.updatedAt = new Date();
-
     await game.save();
+
+    // -- WebSocket Integration: Emit a score update event to all sockets in the game room --
+    const io = req.app.get('socketio');
+    io.to(game.gameName).emit('scoreUpdate', {
+      gameName: game.gameName,
+      scores: game.scores,
+      totals: game.totals,
+      updatedAt: game.updatedAt
+    });
 
     return res.status(200).json({
       success: true,
