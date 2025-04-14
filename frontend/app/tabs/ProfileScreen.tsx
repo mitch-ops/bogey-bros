@@ -1,46 +1,82 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
   ScrollView,
-  TextInput,
   Image,
   TouchableOpacity,
   StyleSheet,
   ImageBackground,
 } from "react-native";
-import golfBackground from '../../assets/GolfballBackground.png'
+import axios from "axios";
+import { useAuth } from "../context/AuthContext"; // Adjust path as needed
+import { API_URL } from "../context/AuthContext";
+import golfBackground from '../../assets/GolfballBackground.png';
+import { useFocusEffect } from "@react-navigation/native";
 
-const ProfileScreen = ({navigation}) => {
+const ProfileScreen = ({ navigation }) => {
+  const [firstName, setFirstName] = useState("Loading...");
+  const [lastName, setLastName] = useState("");
+  const [bio, setBio] = useState("Loading bio...");
+  const [handicap, setHandicap] = useState("...");
+  const { authState } = useAuth();
+
+  useFocusEffect(
+    useCallback(() => {
+      const fetchUserData = async () => {
+        try {
+          const res = await axios.get(`${API_URL}/user`);
+          const data = res.data;
+          console.log("User data:", data); // For debugging
+
+          // Use username as a fallback if firstName/lastName are not available:
+          const nameParts = (data.username || "").split(/[\s._-]+/);
+          const fallbackFirst = nameParts[0]
+            ? nameParts[0].charAt(0).toUpperCase() + nameParts[0].slice(1)
+            : "First";
+          const fallbackLast = nameParts[1]
+            ? nameParts[1].charAt(0).toUpperCase() + nameParts[1].slice(1)
+            : "Last";
+
+          setFirstName(data.firstName || fallbackFirst);
+          setLastName(data.lastName || fallbackLast);
+          setBio(data.bio || "No bio added yet.");
+          setHandicap(data.handicap?.toString() || "N/A");
+        } catch (err) {
+          console.error("Failed to load user data", err);
+        }
+      };
+
+      if (authState?.authenticated) {
+        fetchUserData();
+      }
+    }, [authState])
+  );
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      
-      {/* Avatar and Name area*/}
-      <Image style={styles.avatar} source={require('../../assets/golferprofile.jpg')} />
+      {/* Avatar and Name area */}
+      <Image
+        style={styles.avatar}
+        source={require('../../assets/golferprofile.jpg')}
+      />
       <View style={styles.nameView}>
-        <Text style={styles.nameText}>First name</Text>
-        <Text style={styles.nameText}>Last name</Text>
+        <Text style={styles.nameText}>{firstName}</Text>
+        <Text style={styles.nameText}>{lastName}</Text>
       </View>
-      <TouchableOpacity 
-        style={styles.editProfile} 
-        onPress={() =>
-          navigation.navigate('EditView')
-        }
+
+      <TouchableOpacity
+        style={styles.editProfile}
+        onPress={() => navigation.navigate('EditView')}
       >
         <Text style={styles.editText}>Edit Profile</Text>
       </TouchableOpacity>
 
-      {/* Bio Area*/}
+      {/* Bio Area */}
       <View style={styles.bioView}>
         <Text style={styles.header}>Bio:</Text>
         <View style={styles.bioBodyContainer}>
-          <Text style={styles.bioBodyText}>
-            ⛳️ Pro Golfer | ⛅️ Chasing Birdies{"\n"}
-            🏆 5 | 🔥 Always on Par{"\n"}
-            📍 Dallas | 💪 Never Stop Grinding{"\n"}
-            🌍 TGR Foundation{"\n"}
-            📩 DM for sponsorships & collabs
-          </Text>
+          <Text style={styles.bioBodyText}>{bio}</Text>
         </View>
       </View>
 
@@ -48,7 +84,7 @@ const ProfileScreen = ({navigation}) => {
       <View style={styles.handicapContainer}>
         <Text style={styles.header}>Handicap</Text>
         <ImageBackground style={styles.handicapImage} source={golfBackground}>
-          <Text style={styles.handicapText}>23.1</Text>
+          <Text style={styles.handicapText}>{handicap}</Text>
         </ImageBackground>
       </View>
     </ScrollView>
@@ -91,7 +127,6 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 10,
     width: "100%",
-    
   },
   bioBodyText: {
     fontSize: 16,
@@ -107,24 +142,20 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: "white",
   },
-
   handicapContainer: {
     alignItems: "center",
     paddingTop: 25,
   },
-
   handicapImage: {
     width: 200,
     height: 200,
     justifyContent: "center",
     alignItems: "center",
   },
-
   handicapText: {
     color: "white",
     fontSize: 40
   }
-
 });
 
 export default ProfileScreen;
