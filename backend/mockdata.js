@@ -16,7 +16,7 @@
       body: JSON.stringify({ email, password })
     });
     const data = await res.json();
-    return data.token;
+    return data;
   }
 
   async function sendFriendRequest(token, friendUsername) {
@@ -108,29 +108,6 @@
     return res.json();
   }
 
-  async function getCreditObjects(token) {
-    const res = await fetch('http://localhost:3000/api/user/credits', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    return res.json();
-  }
-
-  async function completeTransactions(token, transId) {
-    const res = await fetch('http://localhost:3000/api/user/completeTransaction', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ id: transId })
-    });
-    return res.json();
-  }
-
   // Create 10 users: user1 through user10
   const users = [];
   for (let i = 1; i <= 10; i++) {
@@ -148,14 +125,15 @@
       await registerUser(user);
     }
 
-    // Login users and get their tokens
     console.log("Logging in users...");
     const tokens = [];
+    const refreshTokens = [];  // Array to store refresh tokens
     for (let user of users) {
-      const token = await loginUser({ email: user.email, password: user.password });
-      tokens.push(token);
+      const loginResult = await loginUser({ email: user.email, password: user.password });
+      tokens.push(loginResult.accessToken);
+      refreshTokens.push(loginResult.refreshToken);
     }
-    console.log("Tokens received:", tokens);
+    console.log("Access Tokens received:", tokens);
 
     // Player 1 sends friend requests to players 2 to 10
     console.log("Player1 sending friend requests to players 2 to 10...");
@@ -203,15 +181,7 @@
     const transactions = await endGame(tokens[0], "Newgame");
     console.log("Game results:", transactions);
 
-    for (const token of tokens) {
-      const creditObjects = await getCreditObjects(token);
-      const transactionIds = creditObjects.map(credit => credit._id);
-
-      for (const transId of transactionIds) {
-        const result = await completeTransactions(token, transId);
-        console.log(`Completed transaction ${transId}:`, result);
-      }
-    }
+    console.log("Refresh Tokens Array:", refreshTokens);
 
     console.log("All operations completed successfully.");
   } catch (error) {

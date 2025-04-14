@@ -39,7 +39,7 @@ const Login = () => {
     //Handles registration
     const register = async () => {
         // Basic Validation
-
+        console.log("Pressed register")
         // Case where one field is empty
         if (!username || !email || !password || !confirmPassword) {
             setErrorMessage('Please fill in all fields');
@@ -55,13 +55,17 @@ const Login = () => {
         // Clear error message
         setErrorMessage('');
         setIsLoading(true);
+        console.log("loading...");
         const result = await onRegister!(username, email, password);
+        console.log("register completed");
         setIsLoading(false);
         if (result && result.error) {
             setErrorMessage(result.msg);
         } else {
+            console.log("Attempting Login...");
             // Log in after successful registration
             login();
+            console.log("Login success");
         }
     };
 

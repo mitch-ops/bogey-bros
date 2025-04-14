@@ -42,7 +42,7 @@ type PlayScreenNavigationProp = StackNavigationProp<
 const PlayScreen = () => {
   // Naviagation and auth
   const navigation = useNavigation<PlayScreenNavigationProp>();
-  const { authState } = useAuth();
+  const { authState, refreshAuthToken } = useAuth();
 
   // Game settings
   const [betEnabled, setBetEnabled] = useState(true);
@@ -95,6 +95,7 @@ const PlayScreen = () => {
 
   // Load friends data
   const loadFriends = useCallback(async () => {
+    refreshAuthToken!();
     if (!authState?.authenticated) return;
 
     setLoadingFriends(true);
@@ -118,6 +119,7 @@ const PlayScreen = () => {
 
   // Load game invites
   const loadGameInvites = useCallback(async () => {
+    refreshAuthToken!();
     if (!authState?.authenticated) return;
 
     setLoadingInvites(true);

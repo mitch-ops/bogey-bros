@@ -13,7 +13,7 @@ async function loginAndGetToken(email, password) {
   }
 
   const data = await response.json();
-  const token = data.token; 
+  const token = data.accessToken; 
 
   if (!token) {
     throw new Error(`No token returned for ${email}`);
