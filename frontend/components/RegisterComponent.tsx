@@ -18,6 +18,7 @@ import Golfsvg from "../assets/Golfsvg.svg";
 import Emailsvg from "../assets/email.svg";
 import Usernamesvg from "../assets/username.svg";
 import Passwordsvg from "../assets/password.svg";
+import Idsvg from "../assets/id-card.svg"
 
 // Type for our navigation
 type RegisterScreenNavigationProp = StackNavigationProp<
@@ -26,6 +27,8 @@ type RegisterScreenNavigationProp = StackNavigationProp<
 >;
 
 const RegisterScreen = ({
+  firstname, setFirstname,
+  lastname, setLastname,
   username, setUsername,
   email, setEmail,
   password, setPassword,
@@ -57,13 +60,39 @@ const RegisterScreen = ({
           <View className="flex-1 p-4">
             {/* Golf SVG */}
             <View className="items-center">
-              <Golfsvg width={425} height={425} />
+              <Golfsvg width={350} height={350} />
             </View>
 
             {/* Register text */}
             <Text className="text-center text-white text-xl mb-6">
               Create your account
             </Text>
+
+            {/* First name*/}
+            <View className="bg-[#5D5C8D] rounded-md mb-4 flex-row items-center px-2">
+              <Idsvg width={32} height={23} />
+              <TextInput
+                className="flex-1 py-3 text-white"
+                placeholder="First name"
+                placeholderTextColor="#A9A9C8"
+                value={firstname}
+                onChangeText={setFirstname}
+                onFocus={() => scrollToField(200)}
+              />
+            </View>
+
+            {/* Last name*/}
+            <View className="bg-[#5D5C8D] rounded-md mb-4 flex-row items-center px-2">
+            <Idsvg width={32} height={23} />
+              <TextInput
+                className="flex-1 py-3 text-white"
+                placeholder="Last name"
+                placeholderTextColor="#A9A9C8"
+                value={lastname}
+                onChangeText={setLastname}
+                onFocus={() => scrollToField(200)}
+              />
+            </View>
 
             {/* Username input */}
             <View className="bg-[#5D5C8D] rounded-md mb-4 flex-row items-center px-2">
