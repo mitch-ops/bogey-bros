@@ -9,6 +9,7 @@ interface AuthProps {
     onLogin?: (email: string, password: string) => Promise<any>;
     onLogout?: () => Promise<any>;
     refreshAuthToken?: () => Promise<any>;
+    loading?: boolean;
 }
 
 const TOKEN_KEY = 'my-jwt';
@@ -30,9 +31,13 @@ export const AuthProvider = ({children}: any) => {
         authenticated: null
     });
 
+    const [loading, setLoading] = useState(false);
+
     useEffect(() => {
         const loadToken = async () => {
+            setLoading(true);
             refresh();
+            setLoading(false);
         }
         loadToken();
     }, [])
@@ -101,15 +106,20 @@ export const AuthProvider = ({children}: any) => {
     }
 
     const register = async (username: string, firstName: string, lastName: string, email: string, password: string) => {
+        setLoading(true);
         try {
             console.log("Awaiting register...");
-            return await axios.post(`${API_URL}/register`, { username, email, password});
+            return await axios.post(`${API_URL}/register`, { username, firstName, lastName, email, password});
         } catch (e) {
             return { error: true, msg: (e as any).response.data.message};
+        }
+        finally {
+            setLoading(false);
         }
     };
 
     const login = async (email: string, password: string) => {
+        setLoading(true);
         try {
             console.log(`${email} ${password}`)
             const result = await axios.post(`${API_URL}/login`, { email, password});
@@ -142,6 +152,8 @@ export const AuthProvider = ({children}: any) => {
         } catch (e) {
             console.log("\n\n\n\nError message: ", e);
             return { error: true, msg: (e as any).response.data.message};
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -167,6 +179,7 @@ export const AuthProvider = ({children}: any) => {
         onLogin: login,
         onLogout: logout,
         refreshAuthToken: refresh,
+        loading,
         authState
     };
 

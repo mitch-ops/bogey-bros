@@ -73,6 +73,7 @@ const RegisterScreen = ({
               <Idsvg width={32} height={23} />
               <TextInput
                 className="flex-1 py-3 text-white"
+                autoCapitalize="words"
                 placeholder="First name"
                 placeholderTextColor="#A9A9C8"
                 value={firstname}
@@ -86,6 +87,7 @@ const RegisterScreen = ({
             <Idsvg width={32} height={23} />
               <TextInput
                 className="flex-1 py-3 text-white"
+                autoCapitalize="words"
                 placeholder="Last name"
                 placeholderTextColor="#A9A9C8"
                 value={lastname}
