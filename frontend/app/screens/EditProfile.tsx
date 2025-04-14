@@ -16,6 +16,8 @@ import pfp from '../../assets/defaultpfp.jpg';
 
 const EditProfileScreen = ({ navigation }) => {
   const [username, setUsername] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [bio, setBio] = useState("");
   const [handicap, setHandicap] = useState("");
   const { authState } = useAuth();
@@ -26,6 +28,8 @@ const EditProfileScreen = ({ navigation }) => {
         const res = await axios.get(`${API_URL}/user`);
         const data = res.data;
         setUsername(data.username || "");
+        setFirstName(data.firstName || "");
+        setLastName(data.lastName || "");
         setBio(data.bio || "");
         setHandicap(data.handicap?.toString() || "N/A");
       } catch (error) {
@@ -40,10 +44,13 @@ const EditProfileScreen = ({ navigation }) => {
 
   const handleSave = async () => {
     try {
-      const updateFields: any = {
+      const updateFields = {
         username,
-        bio
+        firstName,
+        lastName,
+        bio,
       };
+
       console.log("Updating with:", updateFields);
       const res = await axios.put(`${API_URL}/user`, updateFields);
       console.log("Update successful:", res.data);
@@ -56,11 +63,34 @@ const EditProfileScreen = ({ navigation }) => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
       <Image source={pfp} style={styles.avatar} />
       <TouchableOpacity>
         <Text style={styles.editProfilePicText}>Change Picture</Text>
       </TouchableOpacity>
+
+      {/* First Name Field */}
+      <View style={styles.field}>
+        <Text style={styles.label}>First Name:</Text>
+        <TextInput
+          style={styles.input}
+          value={firstName}
+          onChangeText={setFirstName}
+        />
+      </View>
+
+      {/* Last Name Field */}
+      <View style={styles.field}>
+        <Text style={styles.label}>Last Name:</Text>
+        <TextInput
+          style={styles.input}
+          value={lastName}
+          onChangeText={setLastName}
+        />
+      </View>
 
       {/* Username Field */}
       <View style={styles.field}>
@@ -72,15 +102,17 @@ const EditProfileScreen = ({ navigation }) => {
         />
       </View>
 
-      {/* Bio Field */}
+      {/* Bio Field (limited to 280 characters) */}
       <View style={styles.field}>
         <Text style={styles.label}>Bio:</Text>
         <TextInput
           style={[styles.input, styles.bioInput]}
           multiline
+          maxLength={280}
           value={bio}
           onChangeText={setBio}
         />
+        <Text style={styles.charCounter}>{bio.length}/280</Text>
       </View>
 
       {/* Handicap Display Only */}
@@ -98,8 +130,10 @@ const EditProfileScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
+    flexGrow: 1,
     padding: 20,
-    alignItems: "center"
+    alignItems: "center",
+    paddingBottom: 40, // extra bottom padding to ensure save button is visible
   },
   avatar: {
     width: 150,
@@ -132,6 +166,12 @@ const styles = StyleSheet.create({
   bioInput: {
     height: 100,
     textAlignVertical: "top",
+  },
+  charCounter: {
+    alignSelf: "flex-end",
+    marginRight: 10,
+    fontSize: 12,
+    color: "#666",
   },
   staticHandicap: {
     backgroundColor: "#e0e0e0",

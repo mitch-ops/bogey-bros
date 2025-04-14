@@ -29,17 +29,19 @@ const ProfileScreen = ({ navigation }) => {
           const data = res.data;
           console.log("User data:", data); // For debugging
 
-          // Use username as a fallback if firstName/lastName are not available:
-          const nameParts = (data.username || "").split(/[\s._-]+/);
-          const fallbackFirst = nameParts[0]
-            ? nameParts[0].charAt(0).toUpperCase() + nameParts[0].slice(1)
-            : "First";
-          const fallbackLast = nameParts[1]
-            ? nameParts[1].charAt(0).toUpperCase() + nameParts[1].slice(1)
-            : "Last";
+          // If firstName is empty or not provided, default to "firstname"
+          const userFirstName =
+            !data.firstName || data.firstName.trim() === ""
+              ? "firstname"
+              : data.firstName;
+          // If lastName is empty or not provided, default to "lastname"
+          const userLastName =
+            !data.lastName || data.lastName.trim() === ""
+              ? "lastname"
+              : data.lastName;
 
-          setFirstName(data.firstName || fallbackFirst);
-          setLastName(data.lastName || fallbackLast);
+          setFirstName(userFirstName);
+          setLastName(userLastName);
           setBio(data.bio || "No bio added yet.");
           setHandicap(data.handicap?.toString() || "N/A");
         } catch (err) {
