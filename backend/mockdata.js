@@ -3,11 +3,11 @@ import { io } from "socket.io-client";
 
 (async function() {
   // Helper functions for API calls
-  async function registerUser({ username, email, password }) {
+  async function registerUser({ username, firstName, lastName, email, password }) {
     const res = await fetch('http://localhost:3000/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, email, password })
+      body: JSON.stringify({ username, firstName, lastName, email, password })
     });
     return res.json();
   }
@@ -157,6 +157,8 @@ import { io } from "socket.io-client";
     users.push({ 
       username: `user${i}`, 
       email: `user${i}@example.com`, 
+      firstName: "test",
+      lastName: "user",
       password: `password${i}` 
     });
   }
@@ -168,9 +170,10 @@ import { io } from "socket.io-client";
       await registerUser(user);
     }
 
+    // Login users and get their tokens
     console.log("Logging in users...");
     const tokens = [];
-    const refreshTokens = [];  // Array to store refresh tokens
+    const refreshTokens = [];
     for (let user of users) {
       const loginResult = await loginUser({ email: user.email, password: user.password });
       tokens.push(loginResult.accessToken);
@@ -235,12 +238,13 @@ import { io } from "socket.io-client";
     const transactions = await endGame(tokens[0], "Newgame");
     console.log("Transaction results:", transactions);
 
-    for (let token of tokens) {
+    for (const token of tokens) {
       const creditObjects = await getCreditObjects(token);
-      for (let transaction of creditObjects) {
-        const transactionId = transaction._id;
-        const completionResult = await completeTransactions(token, transactionId);
-        console.log(`Completed transaction ${transactionId}:`, completionResult);
+      const transactionIds = creditObjects.map(credit => credit._id);
+
+      for (const transId of transactionIds) {
+        const result = await completeTransactions(token, transId);
+        console.log(`Completed transaction ${transId}:`, result);
       }
     }
 
