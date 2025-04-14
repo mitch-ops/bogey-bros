@@ -10,6 +10,18 @@ const userSchema = new mongoose.Schema({
     trim: true,
     description: 'must be a string and is required'
   },
+  firstName: {
+    type: String,
+    required: true,
+    trim: true,
+    description: 'must be a string and is required'
+  },
+  lastName: {
+    type: String,
+    required: true,
+    trim: true,
+    description: 'must be a string and is required'
+  },
   email: {
     type: String,
     required: true,
@@ -21,6 +33,11 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
     description: 'must be a string and is required'
+  },
+  bio: {
+    type: String,
+    default: "",
+    description: 'personal bio'
   },
   handicap: {
     type: Number,
