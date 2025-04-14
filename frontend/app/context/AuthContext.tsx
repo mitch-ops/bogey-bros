@@ -13,8 +13,8 @@ interface AuthProps {
 
 const TOKEN_KEY = 'my-jwt';
 const REFRESH_KEY = 'my-jwt-refresh';
-//export const API_URL = 'https://bogey-bros.onrender.com/api';
-export const API_URL = 'http://localhost:3000/api';
+export const API_URL = 'https://bogey-bros.onrender.com/api';
+// export const API_URL = 'http://localhost:3000/api';
 const AuthContext = createContext<AuthProps>({});
 
 export const useAuth = () => {
