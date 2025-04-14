@@ -21,7 +21,7 @@ import friendsService, {
 import { useAuth } from "../context/AuthContext";
 
 const FriendsScreen = () => {
-  const { authState } = useAuth();
+  const { authState, refreshAuthToken} = useAuth();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,6 +40,8 @@ const FriendsScreen = () => {
   }, [authState?.authenticated]);
 
   const loadData = async () => {
+    refreshAuthToken!();
+    
     if (!authState?.authenticated) {
       setError("You must be logged in to view friends");
       setIsLoading(false);

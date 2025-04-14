@@ -6,7 +6,7 @@ const JWT_SECRET = process.env.JWT_SECRET
 
 // Register a new user
 const registerUser = async (req, res) => {
-    const { username, email, password } = req.body;
+    const { username, firstName, lastName, email, password } = req.body;
   
     try {
       // Check if user already exists
@@ -20,6 +20,8 @@ const registerUser = async (req, res) => {
       const newUser = new User({
         username,
         email,
+        firstName,
+        lastName,
         passwordHash: password, 
         handicap: 0,
         stats: {
@@ -58,18 +60,42 @@ const loginUser = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
 
-    const token = jwt.sign(
-      { userId: user._id, username: user.username, email: user.email },
-      JWT_SECRET,
-      { expiresIn: '24h' } //token expires after 24 hours
-    );
+    const payload = { userId: user._id, username: user.username, email: user.email };
 
-    res.json({ token });
+    const accessToken = jwt.sign(payload, JWT_SECRET, { expiresIn: '15m' });
+    const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: '7d' });
+
+    res.json({ accessToken, refreshToken });
   } catch (error) {
     console.error('Error logging in:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+const refreshToken = async (req, res) => {
+  const { refreshToken } = req.body; 
+
+  if (!refreshToken) {
+    return res.status(401).json({ message: 'No token provided' });
+  }
+
+  jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(403).json({ message: 'Invalid token' });
+    }
+
+    const payload = { 
+      userId: decoded.userId, 
+      username: decoded.username, 
+      email: decoded.email 
+    };
+
+    const newAccessToken = jwt.sign(payload, JWT_SECRET, { expiresIn: '15m' });
+    res.json({ accessToken: newAccessToken });
+  });
+};
+
+module.exports = { refreshToken };
 
 const verifyToken = (req, res, next) => {
     const token = req.headers['authorization'];
@@ -82,4 +108,4 @@ const verifyToken = (req, res, next) => {
     });
   };
 
-module.exports = { registerUser, loginUser, verifyToken };
+module.exports = { registerUser, loginUser, refreshToken, verifyToken };

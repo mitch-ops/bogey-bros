@@ -13,6 +13,8 @@ import RegisterScreen from "../../components/RegisterComponent"
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
+    const [firstname, setFirstname] = useState('');
+    const [lastname, setLastname] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState(""); //For registation
@@ -39,9 +41,9 @@ const Login = () => {
     //Handles registration
     const register = async () => {
         // Basic Validation
-
+        console.log("Pressed register")
         // Case where one field is empty
-        if (!username || !email || !password || !confirmPassword) {
+        if (!username || !email || !password || !confirmPassword || !firstname || !lastname) {
             setErrorMessage('Please fill in all fields');
             return;
         }
@@ -55,13 +57,17 @@ const Login = () => {
         // Clear error message
         setErrorMessage('');
         setIsLoading(true);
-        const result = await onRegister!(username, email, password);
+        console.log("loading...");
+        const result = await onRegister!(username, firstname, lastname, email, password);
+        console.log("register completed");
         setIsLoading(false);
         if (result && result.error) {
             setErrorMessage(result.msg);
         } else {
+            console.log("Attempting Login...");
             // Log in after successful registration
             login();
+            console.log("Login success");
         }
     };
 
@@ -78,6 +84,10 @@ const Login = () => {
             {registerFields ? 
             (
                 <RegisterScreen
+                    firstname={firstname}
+                    setFirstname={setFirstname}
+                    lastname={lastname}
+                    setLastname={setLastname}
                     username={username}
                     setUsername={setUsername}
                     email={email}

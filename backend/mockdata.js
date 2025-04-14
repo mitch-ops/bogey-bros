@@ -19,7 +19,7 @@ import { io } from "socket.io-client";
       body: JSON.stringify({ email, password })
     });
     const data = await res.json();
-    return data.token;
+    return data;
   }
 
   async function sendFriendRequest(token, friendUsername) {
@@ -168,12 +168,13 @@ import { io } from "socket.io-client";
       await registerUser(user);
     }
 
-    // Login users and get their tokens
     console.log("Logging in users...");
     const tokens = [];
+    const refreshTokens = [];  // Array to store refresh tokens
     for (let user of users) {
-      const token = await loginUser({ email: user.email, password: user.password });
-      tokens.push(token);
+      const loginResult = await loginUser({ email: user.email, password: user.password });
+      tokens.push(loginResult.accessToken);
+      refreshTokens.push(loginResult.refreshToken);
     }
     console.log("Tokens received:", tokens);
 
@@ -234,13 +235,12 @@ import { io } from "socket.io-client";
     const transactions = await endGame(tokens[0], "Newgame");
     console.log("Transaction results:", transactions);
 
-    for (const token of tokens) {
+    for (let token of tokens) {
       const creditObjects = await getCreditObjects(token);
-      const transactionIds = creditObjects.map(credit => credit._id);
-
-      for (const transId of transactionIds) {
-        const result = await completeTransactions(token, transId);
-        console.log(`Completed transaction ${transId}:`, result);
+      for (let transaction of creditObjects) {
+        const transactionId = transaction._id;
+        const completionResult = await completeTransactions(token, transactionId);
+        console.log(`Completed transaction ${transactionId}:`, completionResult);
       }
     }
 
