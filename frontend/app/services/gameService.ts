@@ -43,6 +43,24 @@ export interface Game {
   updatedAt: string;
 }
 
+export interface GameScores {
+  participants: {
+    _id: string;
+    username: string;
+    handicap?: number;
+  }[];
+  scores: number[][];
+  totals: number[][];
+}
+
+export interface GameResults {
+  results: {
+    playerId: string;
+    username: string;
+    betStatus: number;
+  }[];
+}
+
 export interface Player {
   id: string;
   username: string;
@@ -211,13 +229,12 @@ class GameService {
     }
   }
 
-  // Update a game's scores
-  // Not tested yet
-  async updateGameScores(
+  // Update a player's score for a specific hole
+  async updateScore(
     gameName: string,
-    scores: number[][],
-    totals: number[][]
-  ): Promise<Game> {
+    hole: number,
+    score: number
+  ): Promise<any> {
     try {
       const token = await this.getToken();
 
@@ -225,18 +242,85 @@ class GameService {
         throw new Error("Authentication token not found");
       }
 
-      console.log(`Updating scores for game: ${gameName}`);
+      console.log(
+        `Updating score for game ${gameName}, hole ${hole}: ${score}`
+      );
 
-      const response = await httpHelper.put("/games/update", token, {
+      const response = await httpHelper.put("/game/update", token, {
         gameName,
-        scores,
-        totals,
+        hole,
+        score,
       });
 
-      console.log("Game update response:", response);
+      console.log("Update score response:", response);
       return response;
     } catch (error) {
-      console.error(`Error updating game scores for ${gameName}:`, error);
+      console.error(`Error updating score for game ${gameName}:`, error);
+      throw error;
+    }
+  }
+
+  // Get game scores
+  async getGameScores(gameName: string): Promise<GameScores> {
+    try {
+      const token = await this.getToken();
+
+      if (!token) {
+        throw new Error("Authentication token not found");
+      }
+
+      console.log(`Fetching scores for game: ${gameName}`);
+
+      const response = await httpHelper.get(`/game/scores/${gameName}`, token);
+
+      console.log("Game scores response:", response);
+      return response;
+    } catch (error) {
+      console.error(`Error fetching scores for game ${gameName}:`, error);
+      throw error;
+    }
+  }
+
+  // Get game results (betting status)
+  async getGameResults(gameName: string): Promise<GameResults> {
+    try {
+      const token = await this.getToken();
+
+      if (!token) {
+        throw new Error("Authentication token not found");
+      }
+
+      console.log(`Fetching results for game: ${gameName}`);
+
+      const response = await httpHelper.get(`/game/results/${gameName}`, token);
+
+      console.log("Game results response:", response);
+      return response;
+    } catch (error) {
+      console.error(`Error fetching results for game ${gameName}:`, error);
+      throw error;
+    }
+  }
+
+  // End a game
+  async endGame(gameName: string): Promise<any> {
+    try {
+      const token = await this.getToken();
+
+      if (!token) {
+        throw new Error("Authentication token not found");
+      }
+
+      console.log(`Ending game: ${gameName}`);
+
+      const response = await httpHelper.post("/game/end", token, {
+        gameName,
+      });
+
+      console.log("End game response:", response);
+      return response;
+    } catch (error) {
+      console.error(`Error ending game ${gameName}:`, error);
       throw error;
     }
   }

@@ -5,7 +5,7 @@ import { jwtDecode } from "jwt-decode";
 
 interface AuthProps {
     authState?: { token: string | null; authenticated: boolean | null};
-    onRegister?: (username: string, email: string, password: string) => Promise<any>;
+    onRegister?: (username: string, firstName: string, lastName: string, email: string, password: string) => Promise<any>;
     onLogin?: (email: string, password: string) => Promise<any>;
     onLogout?: () => Promise<any>;
     refreshAuthToken?: () => Promise<any>;
@@ -100,7 +100,7 @@ export const AuthProvider = ({children}: any) => {
         logout();   
     }
 
-    const register = async (username: string, email: string, password: string) => {
+    const register = async (username: string, firstName: string, lastName: string, email: string, password: string) => {
         try {
             console.log("Awaiting register...");
             return await axios.post(`${API_URL}/register`, { username, email, password});
@@ -125,7 +125,7 @@ export const AuthProvider = ({children}: any) => {
             
             // console.log("Token_key value: ", TOKEN_KEY);
             // console.log("Token for storing", result.data.accessToken);
-            // console.log("\n\n\n\n", result);
+            console.log("\n\n\n\n", result);
             // console.log("Refresh_key Value value: ", REFRESH_KEY);
             // console.log("Token for storing", result.data.refreshToken);
             let storeResult = await SecureStore.setItemAsync(TOKEN_KEY, result.data.accessToken);
@@ -140,7 +140,7 @@ export const AuthProvider = ({children}: any) => {
             return result;
 
         } catch (e) {
-            // console.log("\n\n\n\nError message: ", e);
+            console.log("\n\n\n\nError message: ", e);
             return { error: true, msg: (e as any).response.data.message};
         }
     };
