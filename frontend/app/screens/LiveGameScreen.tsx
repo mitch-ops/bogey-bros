@@ -88,6 +88,32 @@ const LiveGameScreen = () => {
     }
   }, [gameName]);
 
+  // Function to transform database format to frontend format
+  const transformScoresFormat = (databaseScores, playerCount) => {
+    console.log("Transforming database scores format to frontend format");
+    console.log("Database scores:", JSON.stringify(databaseScores));
+
+    // Initialize frontend scores array (playerCount arrays, each with 18 holes)
+    const frontendScores = Array(playerCount)
+      .fill(0)
+      .map(() => Array(18).fill(0));
+
+    // Convert from hole-based to player-based structure
+    databaseScores.forEach((holeScores, holeIndex) => {
+      // Each holeScores is an array of player scores for this hole
+      holeScores.forEach((playerScore, playerIndex) => {
+        // Skip if beyond player count
+        if (playerIndex < playerCount) {
+          // In frontend format, first index is player, second is hole
+          frontendScores[playerIndex][holeIndex] = playerScore;
+        }
+      });
+    });
+
+    console.log("Transformed frontend scores:", JSON.stringify(frontendScores));
+    return frontendScores;
+  };
+
   // Load game data from API
   const loadGameData = useCallback(async () => {
     if (!gameName) {
@@ -111,6 +137,13 @@ const LiveGameScreen = () => {
           "Received scores array format, converting to expected structure"
         );
 
+        // Transform to frontend format (player-based arrays)
+        const playerCount = players.length;
+        const transformedScores = transformScoresFormat(
+          scoresResponse,
+          playerCount
+        );
+
         // Create a complete game structure using the scores array and player info
         const convertedScores = {
           participants: players.map((player) => ({
@@ -118,17 +151,14 @@ const LiveGameScreen = () => {
             username: player.username,
             handicap: player.handicap || 0,
           })),
-          scores: scoresResponse,
-          totals: players.map((_, index) => {
+          scores: transformedScores,
+          totals: transformedScores.map((playerScores) => {
             // Calculate total for each player
-            if (scoresResponse[index]) {
-              const total = scoresResponse[index].reduce(
-                (sum, score) => sum + (score || 0),
-                0
-              );
-              return [total];
-            }
-            return [0];
+            const total = playerScores.reduce(
+              (sum, score) => sum + (score || 0),
+              0
+            );
+            return [total];
           }),
         };
 
@@ -337,7 +367,7 @@ const LiveGameScreen = () => {
 
           // Ensure player's scores array exists
           if (!updatedScores.scores[playerIndex]) {
-            updatedScores.scores[playerIndex] = [];
+            updatedScores.scores[playerIndex] = Array(18).fill(0);
           }
 
           // Make sure array is long enough for current hole
