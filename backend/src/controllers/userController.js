@@ -153,4 +153,33 @@ const getUserById = async (req, res) => {
   }
 };
 
-module.exports = { getUser, updateUser, deleteUser, getUserById };
+const updateProfilePicture = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    if (!req.file) {
+      return res.status(400).json({ message: 'No image file provided.' });
+    }
+
+    const imageBuffer = req.file.buffer;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { profilePicture: imageBuffer, updatedAt: new Date() },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    return res.status(200).json({ 
+      message: 'Profile picture updated successfully', 
+      user: updatedUser 
+    });
+  } catch (error) {
+    console.error('Error updating profile picture:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+module.exports = { getUser, updateUser, deleteUser, getUserById, updateProfilePicture };

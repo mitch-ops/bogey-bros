@@ -5,6 +5,9 @@ import {
     TouchableOpacity,
     Image,
     StatusBar,
+    Modal,
+    StyleSheet,
+    ActivityIndicator
 } from "react-native";
 import React, { useState } from 'react';
 import Golfsvg from "../assets/Golfsvg.svg"
@@ -22,7 +25,7 @@ const Login = () => {
     const [errorMessage, setErrorMessage] = useState(''); // Error message above login / register button
     const [registerFields, setRegisterFields] = useState(false); //To alternate between being in register a user or logging in user
     const [isLoading, setIsLoading] = useState(false); //Make sure button isn't pressable while awaiting for server response
-    const { onLogin, onRegister } = useAuth(); //Authentication and registration component. Look at ../context/AuthContext for how it works
+    const { onLogin, onRegister, loading } = useAuth(); //Authentication and registration component. Look at ../context/AuthContext for how it works
 
     // Handles the login 
     const login = async () => {
@@ -81,6 +84,17 @@ const Login = () => {
 
     return (
         <View className="flex-1">
+            <Modal
+            animationType="fade"
+            transparent={true}
+            visible={loading}>
+            <View style={styles.centeredView}>
+                <View style={styles.modalView}>
+                    <ActivityIndicator style={styles.modalActivity} size="small" color="#434371" />
+                    <Text style={styles.modalText}>Signing in...</Text>
+                </View>
+            </View>
+            </Modal>
             {registerFields ? 
             (
                 <RegisterScreen
@@ -120,4 +134,34 @@ const Login = () => {
     );
 }
 
+const styles = StyleSheet.create({
+    centeredView: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)', // This dims the background
+    },
+    modalView: {
+        flexDirection: 'row',
+        margin: 20,
+        backgroundColor: 'white',
+        borderRadius: 20,
+        padding: 20,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    modalActivity: {
+        paddingRight: 10,
+    },
+    modalText: {
+        textAlign: 'center',
+    },
+});
 export default Login;

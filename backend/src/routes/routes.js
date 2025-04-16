@@ -1,10 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { getUser, updateUser, deleteUser, getUserById } = require('../controllers/userController');
+const multer = require('multer');
+const { getUser, updateUser, deleteUser, getUserById, updateProfilePicture } = require('../controllers/userController');
 const { sendFriendRequest, acceptFriendRequest, rejectFriendRequest, getFriendRequests } = require('../controllers/friendController');
 const { verifyToken, registerUser, loginUser, refreshToken } = require('../controllers/authController');
 const { sendPlayInvite, acceptPlayInvite, rejectPlayInvite, getPlayInvites, updateScore, getScores, getGameResults, endGame } = require('../controllers/gameController');
 const { getCredits, getDebts, markAsCompleted } = require('../controllers/transactionController');
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 router.post('/api/register', registerUser);
 router.post('/api/login', loginUser);
@@ -28,5 +31,6 @@ router.post('/api/game/end', verifyToken, endGame);
 router.get('/api/user/credits', verifyToken, getCredits);
 router.get('/api/user/debts', verifyToken, getDebts);
 router.post('/api/user/completeTransaction', verifyToken, markAsCompleted);
+router.put('/api/user/profilePicture', verifyToken, upload.single('profilePicture'), updateProfilePicture);
 
 module.exports = router;

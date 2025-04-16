@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User Profile - Login &amp; Update Profile Picture</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #dashboard { margin-top: 30px; }
+    #profilePic {
+      width: 200px;
+      height: auto;
+      border: 1px solid #ccc;
+      display: block;
+      margin-top: 10px;
+    }
+    .error { color: red; }
+    .success { color: green; }
+    form div { margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h1>User Login</h1>
+  <div id="loginSection">
+    <form id="loginForm">
+      <div>
+        <label for="email">Email:</label>
+        <input type="email" id="email" required>
+      </div>
+      <div>
+        <label for="password">Password:</label>
+        <input type="password" id="password" required>
+      </div>
+      <button type="submit">Login</button>
+    </form>
+    <div id="loginError" class="error"></div>
+  </div>
+
+  <div id="dashboard" style="display: none;">
+    <h2>Welcome, <span id="username"></span>!</h2>
+    <div>
+      <h3>Your Profile Picture</h3>
+      <img id="profilePic" src="" alt="Profile Picture">
+    </div>
+    <div>
+      <h3>Upload a New Profile Picture</h3>
+      <form id="uploadForm">
+        <input type="file" id="newProfilePicture" accept="image/*">
+        <button type="submit">Upload New Picture</button>
+      </form>
+      <div id="uploadMessage"></div>
+    </div>
+  </div>
+
+  <script>
+    let accessToken = '';
+
+    // Login
+    async function loginUser(email, password) {
+      const response = await fetch('http://localhost:3000/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      if (!response.ok) throw new Error('Login failed.');
+      return response.json();
+    }
+
+    // Get user info, including the profile picture
+    async function getUser() {
+      const response = await fetch('http://localhost:3000/api/user', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to fetch user data.');
+      return response.json();
+    }
+
+    // Update the profile picture
+    async function updateProfilePicture(file) {
+      const formData = new FormData();
+      formData.append('profilePicture', file);
+      const response = await fetch('http://localhost:3000/api/user/profilePicture', {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${accessToken}` },
+        body: formData
+      });
+      if (!response.ok) throw new Error('Failed to update profile picture.');
+      return response.json();
+    }
+
+    // Login form event handler.
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      document.getElementById('loginError').textContent = "";
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      try {
+        const data = await loginUser(email, password);
+        accessToken = data.accessToken;
+        document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        // Load user data after login.
+        const userData = await getUser();
+        document.getElementById('username').textContent = userData.username || "";
+        if (userData.profilePicture) {
+          // Assume the API returns a base64 encoded string.
+          document.getElementById('profilePic').src = 'data:image/jpeg;base64,' + userData.profilePicture;
+        }
+      } catch (error) {
+        console.error(error);
+        document.getElementById('loginError').textContent = error.message;
+      }
+    });
+
+    // Upload form event handler
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      document.getElementById('uploadMessage').textContent = "";
+      const fileInput = document.getElementById('newProfilePicture');
+      if (fileInput.files.length === 0) {
+        document.getElementById('uploadMessage').textContent = "Please select an image file.";
+        document.getElementById('uploadMessage').className = "error";
+        return;
+      }
+      const file = fileInput.files[0];
+      try {
+        await updateProfilePicture(file);
+        // Refresh and display the updated profile picture
+        const userData = await getUser();
+        if (userData.profilePicture) {
+          document.getElementById('profilePic').src = 'data:image/jpeg;base64,' + userData.profilePicture;
+        }
+        document.getElementById('uploadMessage').textContent = "Profile picture updated successfully!";
+        document.getElementById('uploadMessage').className = "success";
+      } catch (error) {
+        console.error(error);
+        document.getElementById('uploadMessage').textContent = "Update failed: " + error.message;
+        document.getElementById('uploadMessage').className = "error";
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,6 +1,8 @@
 // src/models/userModel.js
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const fs = require('fs');
+const path = require('path');
 
 const userSchema = new mongoose.Schema({
   username: {
@@ -38,6 +40,13 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: "",
     description: 'personal bio'
+  },
+  profilePicture: {
+    type: Buffer,
+    default: function () {
+      return fs.readFileSync(path.join(__dirname, '../assets/default.png'));
+    },
+    description: 'Stores the user profile picture as binary data'
   },
   handicap: {
     type: Number,
