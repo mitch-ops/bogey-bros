@@ -59,6 +59,8 @@ export interface GameResults {
     username: string;
     betStatus: number;
   }[];
+  creditors?: { idStr: string; amount: number }[];
+  debtors?: { idStr: string; amount: number }[];
 }
 
 export interface Player {

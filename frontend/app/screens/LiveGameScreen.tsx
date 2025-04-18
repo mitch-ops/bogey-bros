@@ -62,6 +62,10 @@ const LiveGameScreen = () => {
 
   // Player mapping
   const [playerMap, setPlayerMap] = useState<Record<string, Player>>({});
+  const [playerMaps, setPlayerMaps] = useState({
+    idToUsername: {},
+    usernameToId: {},
+  });
 
   // Current user ID
   const currentUserId = (authState as any)?.userId || "";
@@ -70,14 +74,56 @@ const LiveGameScreen = () => {
   const isGameCreator =
     game?.participants?.length > 0 && game.participants[0] === currentUserId;
 
+  // This function builds a direct mapping between player IDs and usernames
+  const buildPlayerMappings = useCallback(() => {
+    // Create maps for both ID→Username and Username→ID
+    const idToUsername = {};
+    const usernameToId = {};
+
+    console.log("Building player mappings from all available sources");
+
+    // Add mappings from players prop
+    if (players && players.length > 0) {
+      console.log("Adding mappings from players prop");
+      players.forEach((player) => {
+        if (player.id && player.username) {
+          idToUsername[player.id] = player.username;
+          usernameToId[player.username] = player.id;
+          console.log(`Mapped: ${player.id} ↔ ${player.username}`);
+        }
+      });
+    }
+
+    // Add mappings from gameScores.participants
+    if (gameScores && gameScores.participants) {
+      console.log("Adding mappings from gameScores.participants");
+      gameScores.participants.forEach((participant) => {
+        if (participant._id && participant.username) {
+          idToUsername[participant._id] = participant.username;
+          usernameToId[participant.username] = participant._id;
+          console.log(`Mapped: ${participant._id} ↔ ${participant.username}`);
+        }
+      });
+    }
+
+    // Log the mappings for debugging
+    console.log("Final ID to Username mapping:", idToUsername);
+    console.log("Final Username to ID mapping:", usernameToId);
+
+    setPlayerMaps({ idToUsername, usernameToId });
+  }, [players, gameScores]);
+
   // Initialize player map from route params
+  // useEffect(() => {
+  //   const map: Record<string, Player> = {};
+  //   players.forEach((player) => {
+  //     map[player.id] = player;
+  //   });
+  //   setPlayerMap(map);
+  // }, [players]);
   useEffect(() => {
-    const map: Record<string, Player> = {};
-    players.forEach((player) => {
-      map[player.id] = player;
-    });
-    setPlayerMap(map);
-  }, [players]);
+    buildPlayerMappings();
+  }, [players, gameScores, buildPlayerMappings]);
 
   // Load game data on mount and when game name changes
   useEffect(() => {
@@ -112,6 +158,50 @@ const LiveGameScreen = () => {
 
     console.log("Transformed frontend scores:", JSON.stringify(frontendScores));
     return frontendScores;
+  };
+
+  // Function to transform bet results data
+  const transformBetResults = (resultsData, playerIds) => {
+    console.log("Transforming bet results data:", JSON.stringify(resultsData));
+
+    // Create a map to store each player's bet status
+    const betStatusMap: Record<string, number> = {}; // Could change to non type
+
+    // Initialize all players with $0
+    playerIds.forEach((id) => {
+      betStatusMap[id] = 0;
+    });
+
+    // Process creditors (players who are winning money)
+    if (resultsData.creditors && Array.isArray(resultsData.creditors)) {
+      resultsData.creditors.forEach((creditor) => {
+        if (creditor.idStr && creditor.amount) {
+          betStatusMap[creditor.idStr] = creditor.amount;
+        }
+      });
+    }
+
+    // Process debtors (players who are losing money)
+    if (resultsData.debtors && Array.isArray(resultsData.debtors)) {
+      resultsData.debtors.forEach((debtor) => {
+        if (debtor.idStr && debtor.amount) {
+          betStatusMap[debtor.idStr] = -debtor.amount; // Negative amount for debtors
+        }
+      });
+    }
+
+    console.log("Transformed bet status map:", betStatusMap);
+
+    // Convert to expected results format
+    const transformedResults = {
+      results: Object.keys(betStatusMap).map((playerId) => ({
+        playerId,
+        betStatus: betStatusMap[playerId],
+      })),
+    };
+
+    console.log("Transformed results:", JSON.stringify(transformedResults));
+    return transformedResults;
   };
 
   // Load game data from API
@@ -195,11 +285,50 @@ const LiveGameScreen = () => {
 
       // If betting is enabled, fetch results
       if (betEnabled) {
+        // try {
+        //   console.log("Fetching game results...");
+        //   const results = await gameService.getGameResults(gameName);
+        //   console.log("Game results received:", JSON.stringify(results));
+
+        //   // Check if resutls are in the creditor/debtor format
+        //   if (results && (results.creditors || results.debtors)) {
+        //     // Store the original format
+        //     setGameResults(results);
+        //   } else if (results && results.results) {
+        //     // Standard format with results array
+        //     setGameResults(results);
+        //   } else {
+        //     // Initialize empty results
+        //     setGameResults({
+        //       results: players.map((player) => ({
+        //         playerId: player.id,
+        //         username: player.username,
+        //         betStatus: 0,
+        //       })),
+        //     });
+        //   }
+        //   // setGameResults(results);
+        // } catch (error) {
+        //   console.error("Failed to fetch game results:", error);
+        // }
         try {
           console.log("Fetching game results...");
           const results = await gameService.getGameResults(gameName);
           console.log("Game results received:", JSON.stringify(results));
+
+          // Store the results directly, regardless of format
           setGameResults(results);
+
+          // Log all player IDs in the game for debugging
+          console.log(
+            "Current players:",
+            players.map((p) => ({ id: p.id, username: p.username }))
+          );
+
+          if (results.creditors || results.debtors) {
+            console.log("Creditors:", results.creditors);
+            console.log("Debtors:", results.debtors);
+          }
         } catch (error) {
           console.error("Failed to fetch game results:", error);
         }
@@ -561,17 +690,260 @@ const LiveGameScreen = () => {
 
   // Get player bet status
   const getPlayerBetStatus = (playerId: string): string => {
-    if (!gameResults || !gameResults.results) return "-";
+    // if (gameResults) {
+    //   // Check if we have the crditors and debtors data
+    //   if (gameResults.creditors || gameResults.debtors) {
+    //     // Check creditors
+    //     const creditor = gameResults.creditors?.find(
+    //       (c) => c.idStr === playerId
+    //     );
+    //     if (creditor) {
+    //       return `+$${creditor.amount.toFixed(2)}`;
+    //     }
 
-    const playerResult = gameResults.results.find(
-      (r) => r.playerId === playerId
-    );
-    if (!playerResult) return "-";
+    //     // Check debtors
+    //     const debtor = gameResults.debtors?.find((d) => d.idStr === playerId);
+    //     if (debtor) {
+    //       return `-$${debtor.amount.toFixed(2)}`;
+    //     }
 
-    const status = playerResult.betStatus;
-    if (status > 0) return `+$${status}`;
-    if (status < 0) return `-$${Math.abs(status)}`;
-    return "$0";
+    //     return "$0.00";
+    //   }
+
+    //   // Original format with results array
+    //   if (gameResults.results) {
+    //     const playerResult = gameResults.results.find(
+    //       (r) => r.playerId === playerId
+    //     );
+    //     if (!playerResult || playerResult.betStatus === undefined) return "-";
+
+    //     const status = playerResult.betStatus;
+    //     if (status > 0) return `+$${status.toFixed(2)}`;
+    //     if (status < 0) return `-$${Math.abs(status).toFixed(2)}`;
+    //     return "$0.00";
+    //   }
+    // }
+
+    // return "-";
+
+    if (!gameResults) {
+      console.log(`No game results available for player ${playerId}`);
+      return "-";
+    }
+
+    // Log available player IDs for debugging
+    console.log(`Looking for bet status for player: ${playerId}`);
+    console.log("Game results data:", JSON.stringify(gameResults, null, 2));
+
+    // Check if we have the new format with creditors/debtors
+    if (gameResults.creditors || gameResults.debtors) {
+      console.log("Using creditors/debtors format");
+
+      // Check if player is a creditor (winning money)
+      if (gameResults.creditors && Array.isArray(gameResults.creditors)) {
+        for (const creditor of gameResults.creditors) {
+          console.log(
+            `Comparing creditor ${creditor.idStr} with player ${playerId}`
+          );
+          if (creditor.idStr === playerId) {
+            return `+$${creditor.amount.toFixed(2)}`;
+          }
+        }
+      }
+
+      // Check if player is a debtor (losing money)
+      if (gameResults.debtors && Array.isArray(gameResults.debtors)) {
+        for (const debtor of gameResults.debtors) {
+          console.log(
+            `Comparing debtor ${debtor.idStr} with player ${playerId}`
+          );
+          if (debtor.idStr === playerId) {
+            return `-$${debtor.amount.toFixed(2)}`;
+          }
+        }
+      }
+
+      // Default to zero if player found in neither list
+      console.log(
+        `Player ${playerId} not found in either creditors or debtors`
+      );
+      return "$0.00";
+    }
+
+    // Original format with results array
+    if (gameResults.results) {
+      console.log("Using results array format");
+      const playerResult = gameResults.results.find(
+        (r) => r.playerId === playerId
+      );
+      if (!playerResult || playerResult.betStatus === undefined) {
+        console.log(`No result found for player ${playerId} in results array`);
+        return "-";
+      }
+
+      const status = playerResult.betStatus;
+      if (status > 0) return `+$${status.toFixed(2)}`;
+      if (status < 0) return `-$${Math.abs(status).toFixed(2)}`;
+      return "$0.00";
+    }
+
+    console.log("Unrecognized game results format");
+    return "-";
+  };
+
+  // Function to ensure we have the full list of player IDs from multiple sources
+  const gatherAllPlayerIds = () => {
+    const ids = new Set();
+
+    // Add IDs from players array
+    players.forEach((player) => {
+      if (player.id) ids.add(player.id);
+    });
+
+    // Add IDs from gameScores participants
+    if (gameScores && gameScores.participants) {
+      gameScores.participants.forEach((participant) => {
+        if (participant._id) ids.add(participant._id);
+      });
+    }
+
+    // Add IDs from game.participants
+    if (game && game.participants) {
+      game.participants.forEach((id) => {
+        if (id) ids.add(id);
+      });
+    }
+
+    // Add IDs from gameResults
+    if (gameResults) {
+      // From creditors
+      if (gameResults.creditors) {
+        gameResults.creditors.forEach((creditor) => {
+          if (creditor.idStr) ids.add(creditor.idStr);
+        });
+      }
+
+      // From debtors
+      if (gameResults.debtors) {
+        gameResults.debtors.forEach((debtor) => {
+          if (debtor.idStr) ids.add(debtor.idStr);
+        });
+      }
+
+      // From results array
+      if (gameResults.results) {
+        gameResults.results.forEach((result) => {
+          if (result.playerId) ids.add(result.playerId);
+        });
+      }
+    }
+
+    return Array.from(ids);
+  };
+
+  //****** new */
+  // Completely new approach to render net amounts using all available information
+  // const renderNetAmount = (participant) => {
+  //   if (!gameResults || (!gameResults.creditors && !gameResults.debtors)) {
+  //     return "-";
+  //   }
+
+  //   const playerId = participant._id;
+  //   const username = participant.username;
+
+  //   console.log(`Checking net amount for ${username} (ID: ${playerId})`);
+
+  //   // Check if this player is a creditor (winning money)
+  //   const creditor = gameResults.creditors?.find(
+  //     (c) => c.idStr === playerId || c.username === username
+  //   );
+
+  //   if (creditor) {
+  //     console.log(`Found as creditor: ${JSON.stringify(creditor)}`);
+  //     return `+$${creditor.amount.toFixed(2)}`;
+  //   }
+
+  //   // Check if this player is a debtor (losing money)
+  //   const debtor = gameResults.debtors?.find(
+  //     (d) => d.idStr === playerId || d.username === username
+  //   );
+
+  //   if (debtor) {
+  //     console.log(`Found as debtor: ${JSON.stringify(debtor)}`);
+  //     return `-$${debtor.amount.toFixed(2)}`;
+  //   }
+
+  //   // If the player isn't found in either list, but we have other players with amounts,
+  //   // this likely means they have a zero balance
+  //   if (gameResults.creditors?.length > 0 || gameResults.debtors?.length > 0) {
+  //     console.log(`Player not found in creditors/debtors, assuming $0 balance`);
+  //     return "$0.00";
+  //   }
+
+  //   console.log(`No bet information available for this player`);
+  //   return "-";
+  // };
+  const renderNetAmount = (participant) => {
+    if (!gameResults || (!gameResults.creditors && !gameResults.debtors)) {
+      return "-";
+    }
+
+    const playerId = participant._id;
+    const username = participant.username;
+
+    console.log(`Checking net amount for ${username} (ID: ${playerId})`);
+
+    // Check if this player is a creditor (winning money) by ID
+    let creditor = gameResults.creditors?.find((c) => c.idStr === playerId);
+
+    // If not found by ID, try to find by username using our mapping
+    if (!creditor && username && playerMaps.usernameToId[username]) {
+      const altId = playerMaps.usernameToId[username];
+      creditor = gameResults.creditors?.find((c) => c.idStr === altId);
+      if (creditor) {
+        console.log(
+          `Found as creditor using alternate ID ${altId}: ${JSON.stringify(
+            creditor
+          )}`
+        );
+      }
+    }
+
+    if (creditor) {
+      console.log(`Found as creditor: ${JSON.stringify(creditor)}`);
+      return `+$${creditor.amount.toFixed(2)}`;
+    }
+
+    // Check if this player is a debtor (losing money) by ID
+    let debtor = gameResults.debtors?.find((d) => d.idStr === playerId);
+
+    // If not found by ID, try to find by username using our mapping
+    if (!debtor && username && playerMaps.usernameToId[username]) {
+      const altId = playerMaps.usernameToId[username];
+      debtor = gameResults.debtors?.find((d) => d.idStr === altId);
+      if (debtor) {
+        console.log(
+          `Found as debtor using alternate ID ${altId}: ${JSON.stringify(
+            debtor
+          )}`
+        );
+      }
+    }
+
+    if (debtor) {
+      console.log(`Found as debtor: ${JSON.stringify(debtor)}`);
+      return `-$${debtor.amount.toFixed(2)}`;
+    }
+
+    // If the player isn't found in either list, but we have other players with amounts,
+    // this likely means they have a zero balance
+    if (gameResults.creditors?.length > 0 || gameResults.debtors?.length > 0) {
+      console.log(`Player not found in creditors/debtors, assuming $0 balance`);
+      return "$0.00";
+    }
+
+    console.log(`No bet information available for this player`);
+    return "-";
   };
 
   // Render score input modal
@@ -785,17 +1157,15 @@ const LiveGameScreen = () => {
                     style={[
                       styles.cell,
                       {
-                        color: getPlayerBetStatus(participant._id).startsWith(
-                          "+"
-                        )
+                        color: renderNetAmount(participant).startsWith("+")
                           ? "green"
-                          : getPlayerBetStatus(participant._id).startsWith("-")
+                          : renderNetAmount(participant).startsWith("-")
                           ? "red"
                           : "black",
                       },
                     ]}
                   >
-                    {getPlayerBetStatus(participant._id)}
+                    {renderNetAmount(participant)}
                   </Text>
                 </View>
               ))
