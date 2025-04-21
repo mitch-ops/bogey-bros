@@ -62,6 +62,10 @@ const LiveGameScreen = () => {
 
   // Player mapping
   const [playerMap, setPlayerMap] = useState<Record<string, Player>>({});
+  const [playerMaps, setPlayerMaps] = useState({
+    idToUsername: {},
+    usernameToId: {},
+  });
 
   // Current user ID
   const currentUserId = (authState as any)?.userId || "";
@@ -70,14 +74,48 @@ const LiveGameScreen = () => {
   const isGameCreator =
     game?.participants?.length > 0 && game.participants[0] === currentUserId;
 
-  // Initialize player map from route params
+  // This function builds a direct mapping between player IDs and usernames
+  const buildPlayerMappings = useCallback(() => {
+    // Create maps for both ID→Username and Username→ID
+    const idToUsername = {};
+    const usernameToId = {};
+
+    console.log("Building player mappings from all available sources");
+
+    // Add mappings from players prop
+    if (players && players.length > 0) {
+      console.log("Adding mappings from players prop");
+      players.forEach((player) => {
+        if (player.id && player.username) {
+          idToUsername[player.id] = player.username;
+          usernameToId[player.username] = player.id;
+          console.log(`Mapped: ${player.id} ↔ ${player.username}`);
+        }
+      });
+    }
+
+    // Add mappings from gameScores.participants
+    if (gameScores && gameScores.participants) {
+      console.log("Adding mappings from gameScores.participants");
+      gameScores.participants.forEach((participant) => {
+        if (participant._id && participant.username) {
+          idToUsername[participant._id] = participant.username;
+          usernameToId[participant.username] = participant._id;
+          console.log(`Mapped: ${participant._id} ↔ ${participant.username}`);
+        }
+      });
+    }
+
+    // Log the mappings for debugging
+    console.log("Final ID to Username mapping:", idToUsername);
+    console.log("Final Username to ID mapping:", usernameToId);
+
+    setPlayerMaps({ idToUsername, usernameToId });
+  }, [players, gameScores]);
+
   useEffect(() => {
-    const map: Record<string, Player> = {};
-    players.forEach((player) => {
-      map[player.id] = player;
-    });
-    setPlayerMap(map);
-  }, [players]);
+    buildPlayerMappings();
+  }, [players, gameScores, buildPlayerMappings]);
 
   // Load game data on mount and when game name changes
   useEffect(() => {
@@ -87,6 +125,76 @@ const LiveGameScreen = () => {
       setIsLoading(false);
     }
   }, [gameName]);
+
+  // Function to transform database format to frontend format
+  const transformScoresFormat = (databaseScores, playerCount) => {
+    console.log("Transforming database scores format to frontend format");
+    console.log("Database scores:", JSON.stringify(databaseScores));
+
+    // Initialize frontend scores array (playerCount arrays, each with 18 holes)
+    const frontendScores = Array(playerCount)
+      .fill(0)
+      .map(() => Array(18).fill(0));
+
+    // Convert from hole-based to player-based structure
+    databaseScores.forEach((holeScores, holeIndex) => {
+      // Each holeScores is an array of player scores for this hole
+      holeScores.forEach((playerScore, playerIndex) => {
+        // Skip if beyond player count
+        if (playerIndex < playerCount) {
+          // In frontend format, first index is player, second is hole
+          frontendScores[playerIndex][holeIndex] = playerScore;
+        }
+      });
+    });
+
+    console.log("Transformed frontend scores:", JSON.stringify(frontendScores));
+    return frontendScores;
+  };
+
+  // Function to transform bet results data
+  const transformBetResults = (resultsData, playerIds) => {
+    console.log("Transforming bet results data:", JSON.stringify(resultsData));
+
+    // Create a map to store each player's bet status
+    const betStatusMap: Record<string, number> = {}; // Could change to non type
+
+    // Initialize all players with $0
+    playerIds.forEach((id) => {
+      betStatusMap[id] = 0;
+    });
+
+    // Process creditors (players who are winning money)
+    if (resultsData.creditors && Array.isArray(resultsData.creditors)) {
+      resultsData.creditors.forEach((creditor) => {
+        if (creditor.idStr && creditor.amount) {
+          betStatusMap[creditor.idStr] = creditor.amount;
+        }
+      });
+    }
+
+    // Process debtors (players who are losing money)
+    if (resultsData.debtors && Array.isArray(resultsData.debtors)) {
+      resultsData.debtors.forEach((debtor) => {
+        if (debtor.idStr && debtor.amount) {
+          betStatusMap[debtor.idStr] = -debtor.amount; // Negative amount for debtors
+        }
+      });
+    }
+
+    console.log("Transformed bet status map:", betStatusMap);
+
+    // Convert to expected results format
+    const transformedResults = {
+      results: Object.keys(betStatusMap).map((playerId) => ({
+        playerId,
+        betStatus: betStatusMap[playerId],
+      })),
+    };
+
+    console.log("Transformed results:", JSON.stringify(transformedResults));
+    return transformedResults;
+  };
 
   // Load game data from API
   const loadGameData = useCallback(async () => {
@@ -111,6 +219,13 @@ const LiveGameScreen = () => {
           "Received scores array format, converting to expected structure"
         );
 
+        // Transform to frontend format (player-based arrays)
+        const playerCount = players.length;
+        const transformedScores = transformScoresFormat(
+          scoresResponse,
+          playerCount
+        );
+
         // Create a complete game structure using the scores array and player info
         const convertedScores = {
           participants: players.map((player) => ({
@@ -118,17 +233,14 @@ const LiveGameScreen = () => {
             username: player.username,
             handicap: player.handicap || 0,
           })),
-          scores: scoresResponse,
-          totals: players.map((_, index) => {
+          scores: transformedScores,
+          totals: transformedScores.map((playerScores) => {
             // Calculate total for each player
-            if (scoresResponse[index]) {
-              const total = scoresResponse[index].reduce(
-                (sum, score) => sum + (score || 0),
-                0
-              );
-              return [total];
-            }
-            return [0];
+            const total = playerScores.reduce(
+              (sum, score) => sum + (score || 0),
+              0
+            );
+            return [total];
           }),
         };
 
@@ -169,7 +281,20 @@ const LiveGameScreen = () => {
           console.log("Fetching game results...");
           const results = await gameService.getGameResults(gameName);
           console.log("Game results received:", JSON.stringify(results));
+
+          // Store the results directly, regardless of format
           setGameResults(results);
+
+          // Log all player IDs in the game for debugging
+          console.log(
+            "Current players:",
+            players.map((p) => ({ id: p.id, username: p.username }))
+          );
+
+          if (results.creditors || results.debtors) {
+            console.log("Creditors:", results.creditors);
+            console.log("Debtors:", results.debtors);
+          }
         } catch (error) {
           console.error("Failed to fetch game results:", error);
         }
@@ -337,7 +462,7 @@ const LiveGameScreen = () => {
 
           // Ensure player's scores array exists
           if (!updatedScores.scores[playerIndex]) {
-            updatedScores.scores[playerIndex] = [];
+            updatedScores.scores[playerIndex] = Array(18).fill(0);
           }
 
           // Make sure array is long enough for current hole
@@ -531,17 +656,226 @@ const LiveGameScreen = () => {
 
   // Get player bet status
   const getPlayerBetStatus = (playerId: string): string => {
-    if (!gameResults || !gameResults.results) return "-";
+    if (!gameResults) {
+      console.log(`No game results available for player ${playerId}`);
+      return "-";
+    }
 
-    const playerResult = gameResults.results.find(
-      (r) => r.playerId === playerId
-    );
-    if (!playerResult) return "-";
+    // Log available player IDs for debugging
+    console.log(`Looking for bet status for player: ${playerId}`);
+    console.log("Game results data:", JSON.stringify(gameResults, null, 2));
 
-    const status = playerResult.betStatus;
-    if (status > 0) return `+$${status}`;
-    if (status < 0) return `-$${Math.abs(status)}`;
-    return "$0";
+    // Check if we have the new format with creditors/debtors
+    if (gameResults.creditors || gameResults.debtors) {
+      console.log("Using creditors/debtors format");
+
+      // Check if player is a creditor (winning money)
+      if (gameResults.creditors && Array.isArray(gameResults.creditors)) {
+        for (const creditor of gameResults.creditors) {
+          console.log(
+            `Comparing creditor ${creditor.idStr} with player ${playerId}`
+          );
+          if (creditor.idStr === playerId) {
+            return `+$${creditor.amount.toFixed(2)}`;
+          }
+        }
+      }
+
+      // Check if player is a debtor (losing money)
+      if (gameResults.debtors && Array.isArray(gameResults.debtors)) {
+        for (const debtor of gameResults.debtors) {
+          console.log(
+            `Comparing debtor ${debtor.idStr} with player ${playerId}`
+          );
+          if (debtor.idStr === playerId) {
+            return `-$${debtor.amount.toFixed(2)}`;
+          }
+        }
+      }
+
+      // Default to zero if player found in neither list
+      console.log(
+        `Player ${playerId} not found in either creditors or debtors`
+      );
+      return "$0.00";
+    }
+
+    // Original format with results array
+    if (gameResults.results) {
+      console.log("Using results array format");
+      const playerResult = gameResults.results.find(
+        (r) => r.playerId === playerId
+      );
+      if (!playerResult || playerResult.betStatus === undefined) {
+        console.log(`No result found for player ${playerId} in results array`);
+        return "-";
+      }
+
+      const status = playerResult.betStatus;
+      if (status > 0) return `+$${status.toFixed(2)}`;
+      if (status < 0) return `-$${Math.abs(status).toFixed(2)}`;
+      return "$0.00";
+    }
+
+    console.log("Unrecognized game results format");
+    return "-";
+  };
+
+  // Function to ensure we have the full list of player IDs from multiple sources
+  const gatherAllPlayerIds = () => {
+    const ids = new Set();
+
+    // Add IDs from players array
+    players.forEach((player) => {
+      if (player.id) ids.add(player.id);
+    });
+
+    // Add IDs from gameScores participants
+    if (gameScores && gameScores.participants) {
+      gameScores.participants.forEach((participant) => {
+        if (participant._id) ids.add(participant._id);
+      });
+    }
+
+    // Add IDs from game.participants
+    if (game && game.participants) {
+      game.participants.forEach((id) => {
+        if (id) ids.add(id);
+      });
+    }
+
+    // Add IDs from gameResults
+    if (gameResults) {
+      // From creditors
+      if (gameResults.creditors) {
+        gameResults.creditors.forEach((creditor) => {
+          if (creditor.idStr) ids.add(creditor.idStr);
+        });
+      }
+
+      // From debtors
+      if (gameResults.debtors) {
+        gameResults.debtors.forEach((debtor) => {
+          if (debtor.idStr) ids.add(debtor.idStr);
+        });
+      }
+
+      // From results array
+      if (gameResults.results) {
+        gameResults.results.forEach((result) => {
+          if (result.playerId) ids.add(result.playerId);
+        });
+      }
+    }
+
+    return Array.from(ids);
+  };
+
+  // Final updated renderNetAmount function with fixed inference logic
+  const renderNetAmount = (participant) => {
+    if (!gameResults || (!gameResults.creditors && !gameResults.debtors)) {
+      return "-";
+    }
+
+    const playerId = participant._id;
+    const username = participant.username;
+
+    console.log(`Rendering net amount for ${username} (ID: ${playerId})`);
+
+    // Get all player IDs for reference
+    const allPlayerIds = gameScores?.participants?.map((p) => p._id) || [];
+    const creatorId = game?.participants?.[0];
+    const isCreator = playerId === creatorId;
+
+    // Flag whether this is a 2-player game
+    const isTwoPlayerGame = allPlayerIds.length === 2;
+
+    // First check direct matches in creditors
+    let foundAsCreditor = false;
+    if (gameResults.creditors && gameResults.creditors.length > 0) {
+      const creditor = gameResults.creditors.find((c) => c.idStr === playerId);
+      if (creditor) {
+        console.log(`Found ${username} directly as creditor`);
+        return `+$${creditor.amount.toFixed(2)}`;
+      }
+    }
+
+    // Then check direct matches in debtors
+    if (gameResults.debtors && gameResults.debtors.length > 0) {
+      const debtor = gameResults.debtors.find((d) => d.idStr === playerId);
+      if (debtor) {
+        console.log(`Found ${username} directly as debtor`);
+        return `-$${debtor.amount.toFixed(2)}`;
+      }
+    }
+
+    // If we're in a 2-player game and didn't find a direct match, we need to infer
+    if (isTwoPlayerGame) {
+      console.log("Two-player game detected, using inference logic");
+
+      // Get the other player's ID
+      const otherPlayerId = allPlayerIds.find((id) => id !== playerId);
+      console.log(`This player: ${playerId}, Other player: ${otherPlayerId}`);
+
+      // Check if other player is a creditor
+      if (gameResults.creditors && gameResults.creditors.length > 0) {
+        const otherPlayerCreditor = gameResults.creditors.find(
+          (c) => c.idStr === otherPlayerId
+        );
+        if (otherPlayerCreditor) {
+          console.log(
+            `Other player found as creditor: ${JSON.stringify(
+              otherPlayerCreditor
+            )}`
+          );
+          return `-$${otherPlayerCreditor.amount.toFixed(2)}`;
+        }
+      }
+
+      // Check if other player is a debtor
+      if (gameResults.debtors && gameResults.debtors.length > 0) {
+        const otherPlayerDebtor = gameResults.debtors.find(
+          (d) => d.idStr === otherPlayerId
+        );
+        if (otherPlayerDebtor) {
+          console.log(
+            `Other player found as debtor: ${JSON.stringify(otherPlayerDebtor)}`
+          );
+          return `+$${otherPlayerDebtor.amount.toFixed(2)}`;
+        }
+      }
+
+      // Check if there's any creditor/debtor without matching to a specific player
+      if (gameResults.creditors?.length === 1) {
+        // If there's exactly one creditor but it didn't match either player directly,
+        // assume it belongs to the creator
+        const creditor = gameResults.creditors[0];
+        if (isCreator) {
+          console.log("Inferring creator is the unmatched creditor");
+          return `+$${creditor.amount.toFixed(2)}`;
+        } else {
+          console.log("Inferring other player is the unmatched creditor");
+          return `-$${creditor.amount.toFixed(2)}`;
+        }
+      }
+
+      if (gameResults.debtors?.length === 1) {
+        // If there's exactly one debtor but it didn't match either player directly,
+        // assume it belongs to the creator
+        const debtor = gameResults.debtors[0];
+        if (isCreator) {
+          console.log("Inferring creator is the unmatched debtor");
+          return `-$${debtor.amount.toFixed(2)}`;
+        } else {
+          console.log("Inferring other player is the unmatched debtor");
+          return `+$${debtor.amount.toFixed(2)}`;
+        }
+      }
+    }
+
+    // If we couldn't infer anything, default to zero
+    console.log(`No bet information could be determined for ${username}`);
+    return "$0.00";
   };
 
   // Render score input modal
@@ -755,17 +1089,15 @@ const LiveGameScreen = () => {
                     style={[
                       styles.cell,
                       {
-                        color: getPlayerBetStatus(participant._id).startsWith(
-                          "+"
-                        )
+                        color: renderNetAmount(participant).startsWith("+")
                           ? "green"
-                          : getPlayerBetStatus(participant._id).startsWith("-")
+                          : renderNetAmount(participant).startsWith("-")
                           ? "red"
                           : "black",
                       },
                     ]}
                   >
-                    {getPlayerBetStatus(participant._id)}
+                    {renderNetAmount(participant)}
                   </Text>
                 </View>
               ))
