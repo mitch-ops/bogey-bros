@@ -1,10 +1,10 @@
 (async function() {
   // Helper functions for API calls
-  async function registerUser({ username, email, password }) {
+  async function registerUser({ username, firstName, lastName, email, password }) {
     const res = await fetch('http://localhost:3000/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, email, password })
+      body: JSON.stringify({ username, firstName, lastName, email, password })
     });
     return res.json();
   }
@@ -113,6 +113,8 @@
   for (let i = 1; i <= 10; i++) {
     users.push({ 
       username: `user${i}`, 
+      firstName: `user`,
+      lastName: `test${i}`,
       email: `user${i}@example.com`, 
       password: `password${i}` 
     });

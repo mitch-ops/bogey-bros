@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const { getUser, updateUser, deleteUser, getUserById, updateProfilePicture } = require('../controllers/userController');
+const { getUser, updateUser, deleteUser, getUserById, getActivity, updateProfilePicture } = require('../controllers/userController');
 const { sendFriendRequest, acceptFriendRequest, rejectFriendRequest, getFriendRequests } = require('../controllers/friendController');
 const { verifyToken, registerUser, loginUser, refreshToken } = require('../controllers/authController');
 const { sendPlayInvite, acceptPlayInvite, rejectPlayInvite, getPlayInvites, updateScore, getScores, getGameResults, endGame } = require('../controllers/gameController');
@@ -19,6 +19,7 @@ router.get('/api/userById/:id', verifyToken, getUserById);
 router.post('/api/friends', verifyToken, sendFriendRequest);
 router.post('/api/friends/accept', verifyToken, acceptFriendRequest);
 router.post('/api/friends/reject', verifyToken, rejectFriendRequest);
+router.get('/api/user/getActivity', verifyToken, getActivity);
 router.get('/api/friends', verifyToken, getFriendRequests);
 router.post('/api/invite', verifyToken, sendPlayInvite);
 router.post('/api/invite/accept', verifyToken, acceptPlayInvite);

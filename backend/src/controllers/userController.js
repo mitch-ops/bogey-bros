@@ -126,6 +126,61 @@ const deleteUser = async (req, res) => {
   }
 };
 
+const getActivity = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const user = await User.findById(userId).select("friends");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const friendIds = user.friends;
+
+    const friends = await User.find({ _id: { $in: friendIds } }).select("firstName lastName username");
+
+    const gameBatches = await Promise.all(
+      friends.map(friend =>
+        Game.find({
+              participants: friend._id,
+              status: "Completed"
+            })
+            .sort({ startTime: -1 })
+            .limit(3)
+            .select("courseName startTime participants totals scores")
+            .lean()
+            .then(games => ({ friend, games }))
+      )
+    );
+
+    let nextId = 1;
+    const activities = [];
+    gameBatches.forEach(({ friend, games }) => {
+      games.forEach(game => {
+        const idx = game.participants
+                        .findIndex(p => p.toString() === friend._id.toString());
+        if (idx === -1) return;                    
+
+        const totalStrokes = game.totals[idx][2];
+
+        activities.push({
+          id: nextId++,
+          user: `${friend.firstName} ${friend.lastName ?? ""}.`,
+          course: game.courseName,
+          date: new Date(game.startTime).toLocaleDateString("en-US"),
+          score: totalStrokes,
+          holes: `${game.scores.length} holes`      
+        });
+      });
+    });
+
+    activities.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    return res.json({ activities });
+  } catch (err) {
+    console.error("Error fetching user activity:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -182,4 +237,4 @@ const updateProfilePicture = async (req, res) => {
   }
 };
 
-module.exports = { getUser, updateUser, deleteUser, getUserById, updateProfilePicture };
+module.exports = { getUser, updateUser, deleteUser, getUserById, updateProfilePicture, getActivity };
