@@ -883,6 +883,195 @@ const LiveGameScreen = () => {
   //   console.log(`No bet information available for this player`);
   //   return "-";
   // };
+
+  //**** new */
+  // const renderNetAmount = (participant) => {
+  //   if (!gameResults || (!gameResults.creditors && !gameResults.debtors)) {
+  //     return "-";
+  //   }
+
+  //   const playerId = participant._id;
+  //   const username = participant.username;
+
+  //   console.log(`Checking net amount for ${username} (ID: ${playerId})`);
+
+  //   // Check if this player is a creditor (winning money) by ID
+  //   let creditor = gameResults.creditors?.find((c) => c.idStr === playerId);
+
+  //   // If not found by ID, try to find by username using our mapping
+  //   if (!creditor && username && playerMaps.usernameToId[username]) {
+  //     const altId = playerMaps.usernameToId[username];
+  //     creditor = gameResults.creditors?.find((c) => c.idStr === altId);
+  //     if (creditor) {
+  //       console.log(
+  //         `Found as creditor using alternate ID ${altId}: ${JSON.stringify(
+  //           creditor
+  //         )}`
+  //       );
+  //     }
+  //   }
+
+  //   if (creditor) {
+  //     console.log(`Found as creditor: ${JSON.stringify(creditor)}`);
+  //     return `+$${creditor.amount.toFixed(2)}`;
+  //   }
+
+  //   // Check if this player is a debtor (losing money) by ID
+  //   let debtor = gameResults.debtors?.find((d) => d.idStr === playerId);
+
+  //   // If not found by ID, try to find by username using our mapping
+  //   if (!debtor && username && playerMaps.usernameToId[username]) {
+  //     const altId = playerMaps.usernameToId[username];
+  //     debtor = gameResults.debtors?.find((d) => d.idStr === altId);
+  //     if (debtor) {
+  //       console.log(
+  //         `Found as debtor using alternate ID ${altId}: ${JSON.stringify(
+  //           debtor
+  //         )}`
+  //       );
+  //     }
+  //   }
+
+  //   if (debtor) {
+  //     console.log(`Found as debtor: ${JSON.stringify(debtor)}`);
+  //     return `-$${debtor.amount.toFixed(2)}`;
+  //   }
+
+  //   // If the player isn't found in either list, but we have other players with amounts,
+  //   // this likely means they have a zero balance
+  //   if (gameResults.creditors?.length > 0 || gameResults.debtors?.length > 0) {
+  //     console.log(`Player not found in creditors/debtors, assuming $0 balance`);
+  //     return "$0.00";
+  //   }
+
+  //   console.log(`No bet information available for this player`);
+  //   return "-";
+  // };
+
+  // const renderNetAmount = (participant) => {
+  //   if (!gameResults || (!gameResults.creditors && !gameResults.debtors)) {
+  //     return "-";
+  //   }
+
+  //   const playerId = participant._id;
+  //   const username = participant.username;
+
+  //   console.log(`Rendering net amount for ${username} (ID: ${playerId})`);
+
+  //   // Track if we had any debtor/creditor matches, for helping debug the zero case
+  //   let anyMatches = false;
+
+  //   // For both the creator and joiner player, the sum of all creditors should equal the
+  //   // sum of all debtors (money is just transferred between players).
+  //   // If we know total pot and player count, we can calculate correct amounts
+  //   const totalPlayers = gameScores?.participants?.length || 0;
+
+  //   // Check if this player is a creditor (winning money)
+  //   if (gameResults.creditors && gameResults.creditors.length > 0) {
+  //     for (const creditor of gameResults.creditors) {
+  //       // Try multiple ID formats and comparison methods
+  //       if (
+  //         creditor.idStr === playerId ||
+  //         creditor.idStr.toString() === playerId.toString() ||
+  //         (playerMaps?.usernameToId[username] &&
+  //           creditor.idStr === playerMaps.usernameToId[username])
+  //       ) {
+  //         console.log(
+  //           `Found ${username} as creditor: ${JSON.stringify(creditor)}`
+  //         );
+  //         anyMatches = true;
+  //         return `+$${creditor.amount.toFixed(2)}`;
+  //       }
+  //     }
+  //   }
+
+  //   // Check if this player is a debtor (losing money)
+  //   if (gameResults.debtors && gameResults.debtors.length > 0) {
+  //     for (const debtor of gameResults.debtors) {
+  //       // Try multiple ID formats and comparison methods
+  //       if (
+  //         debtor.idStr === playerId ||
+  //         debtor.idStr.toString() === playerId.toString() ||
+  //         (playerMaps?.usernameToId[username] &&
+  //           debtor.idStr === playerMaps.usernameToId[username])
+  //       ) {
+  //         console.log(`Found ${username} as debtor: ${JSON.stringify(debtor)}`);
+  //         anyMatches = true;
+  //         return `-$${debtor.amount.toFixed(2)}`;
+  //       }
+  //     }
+  //   }
+
+  //   // If there are other players with amounts but this player wasn't found,
+  //   // we need to make a decision about what to show
+  //   if (
+  //     !anyMatches &&
+  //     (gameResults.creditors?.length > 0 || gameResults.debtors?.length > 0)
+  //   ) {
+  //     // In a two-player game, if one player is in creditors, the other must be in debtors
+  //     // with the same amount (just negative)
+  //     if (totalPlayers === 2) {
+  //       // If one player is a creditor, this player must be a debtor
+  //       if (gameResults.creditors?.length === 1) {
+  //         const creditorAmount = gameResults.creditors[0].amount;
+  //         return `-$${creditorAmount.toFixed(2)}`;
+  //       }
+  //       // If one player is a debtor, this player must be a creditor
+  //       if (gameResults.debtors?.length === 1) {
+  //         const debtorAmount = gameResults.debtors[0].amount;
+  //         return `+$${debtorAmount.toFixed(2)}`;
+  //       }
+  //     }
+
+  //     // If we get here and still no matches, use fallback logic
+  //     if (isGameCreator && playerId === game?.participants?.[0]) {
+  //       console.log(
+  //         `Creator not found in results, checking if we can infer amount`
+  //       );
+
+  //       // Check if creator is missing but we have other players' amounts
+  //       if (
+  //         gameResults.creditors?.length > 0 &&
+  //         !gameResults.creditors.some((c) => c.idStr === playerId)
+  //       ) {
+  //         // For a 2-player game, creator must be a debtor with the opposite amount
+  //         if (totalPlayers === 2 && gameResults.creditors.length === 1) {
+  //           const amount = gameResults.creditors[0].amount;
+  //           console.log(
+  //             `Inferring creator is a debtor with amount: -$${amount.toFixed(
+  //               2
+  //             )}`
+  //           );
+  //           return `-$${amount.toFixed(2)}`;
+  //         }
+  //       }
+
+  //       if (
+  //         gameResults.debtors?.length > 0 &&
+  //         !gameResults.debtors.some((d) => d.idStr === playerId)
+  //       ) {
+  //         // For a 2-player game, creator must be a creditor with the opposite amount
+  //         if (totalPlayers === 2 && gameResults.debtors.length === 1) {
+  //           const amount = gameResults.debtors[0].amount;
+  //           console.log(
+  //             `Inferring creator is a creditor with amount: +$${amount.toFixed(
+  //               2
+  //             )}`
+  //           );
+  //           return `+$${amount.toFixed(2)}`;
+  //         }
+  //       }
+  //     }
+
+  //     console.log(`Player not found in results, displaying $0.00`);
+  //     return "$0.00";
+  //   }
+
+  //   console.log(`No bet information available at all`);
+  //   return "-";
+  // };
+
+  // Final updated renderNetAmount function with fixed inference logic
   const renderNetAmount = (participant) => {
     if (!gameResults || (!gameResults.creditors && !gameResults.debtors)) {
       return "-";
@@ -891,59 +1080,102 @@ const LiveGameScreen = () => {
     const playerId = participant._id;
     const username = participant.username;
 
-    console.log(`Checking net amount for ${username} (ID: ${playerId})`);
+    console.log(`Rendering net amount for ${username} (ID: ${playerId})`);
 
-    // Check if this player is a creditor (winning money) by ID
-    let creditor = gameResults.creditors?.find((c) => c.idStr === playerId);
+    // Get all player IDs for reference
+    const allPlayerIds = gameScores?.participants?.map((p) => p._id) || [];
+    const creatorId = game?.participants?.[0];
+    const isCreator = playerId === creatorId;
 
-    // If not found by ID, try to find by username using our mapping
-    if (!creditor && username && playerMaps.usernameToId[username]) {
-      const altId = playerMaps.usernameToId[username];
-      creditor = gameResults.creditors?.find((c) => c.idStr === altId);
+    // Flag whether this is a 2-player game
+    const isTwoPlayerGame = allPlayerIds.length === 2;
+
+    // First check direct matches in creditors
+    let foundAsCreditor = false;
+    if (gameResults.creditors && gameResults.creditors.length > 0) {
+      const creditor = gameResults.creditors.find((c) => c.idStr === playerId);
       if (creditor) {
-        console.log(
-          `Found as creditor using alternate ID ${altId}: ${JSON.stringify(
-            creditor
-          )}`
-        );
+        console.log(`Found ${username} directly as creditor`);
+        return `+$${creditor.amount.toFixed(2)}`;
       }
     }
 
-    if (creditor) {
-      console.log(`Found as creditor: ${JSON.stringify(creditor)}`);
-      return `+$${creditor.amount.toFixed(2)}`;
-    }
-
-    // Check if this player is a debtor (losing money) by ID
-    let debtor = gameResults.debtors?.find((d) => d.idStr === playerId);
-
-    // If not found by ID, try to find by username using our mapping
-    if (!debtor && username && playerMaps.usernameToId[username]) {
-      const altId = playerMaps.usernameToId[username];
-      debtor = gameResults.debtors?.find((d) => d.idStr === altId);
+    // Then check direct matches in debtors
+    if (gameResults.debtors && gameResults.debtors.length > 0) {
+      const debtor = gameResults.debtors.find((d) => d.idStr === playerId);
       if (debtor) {
-        console.log(
-          `Found as debtor using alternate ID ${altId}: ${JSON.stringify(
-            debtor
-          )}`
-        );
+        console.log(`Found ${username} directly as debtor`);
+        return `-$${debtor.amount.toFixed(2)}`;
       }
     }
 
-    if (debtor) {
-      console.log(`Found as debtor: ${JSON.stringify(debtor)}`);
-      return `-$${debtor.amount.toFixed(2)}`;
+    // If we're in a 2-player game and didn't find a direct match, we need to infer
+    if (isTwoPlayerGame) {
+      console.log("Two-player game detected, using inference logic");
+
+      // Get the other player's ID
+      const otherPlayerId = allPlayerIds.find((id) => id !== playerId);
+      console.log(`This player: ${playerId}, Other player: ${otherPlayerId}`);
+
+      // Check if other player is a creditor
+      if (gameResults.creditors && gameResults.creditors.length > 0) {
+        const otherPlayerCreditor = gameResults.creditors.find(
+          (c) => c.idStr === otherPlayerId
+        );
+        if (otherPlayerCreditor) {
+          console.log(
+            `Other player found as creditor: ${JSON.stringify(
+              otherPlayerCreditor
+            )}`
+          );
+          return `-$${otherPlayerCreditor.amount.toFixed(2)}`;
+        }
+      }
+
+      // Check if other player is a debtor
+      if (gameResults.debtors && gameResults.debtors.length > 0) {
+        const otherPlayerDebtor = gameResults.debtors.find(
+          (d) => d.idStr === otherPlayerId
+        );
+        if (otherPlayerDebtor) {
+          console.log(
+            `Other player found as debtor: ${JSON.stringify(otherPlayerDebtor)}`
+          );
+          return `+$${otherPlayerDebtor.amount.toFixed(2)}`;
+        }
+      }
+
+      // Check if there's any creditor/debtor without matching to a specific player
+      if (gameResults.creditors?.length === 1) {
+        // If there's exactly one creditor but it didn't match either player directly,
+        // assume it belongs to the creator
+        const creditor = gameResults.creditors[0];
+        if (isCreator) {
+          console.log("Inferring creator is the unmatched creditor");
+          return `+$${creditor.amount.toFixed(2)}`;
+        } else {
+          console.log("Inferring other player is the unmatched creditor");
+          return `-$${creditor.amount.toFixed(2)}`;
+        }
+      }
+
+      if (gameResults.debtors?.length === 1) {
+        // If there's exactly one debtor but it didn't match either player directly,
+        // assume it belongs to the creator
+        const debtor = gameResults.debtors[0];
+        if (isCreator) {
+          console.log("Inferring creator is the unmatched debtor");
+          return `-$${debtor.amount.toFixed(2)}`;
+        } else {
+          console.log("Inferring other player is the unmatched debtor");
+          return `+$${debtor.amount.toFixed(2)}`;
+        }
+      }
     }
 
-    // If the player isn't found in either list, but we have other players with amounts,
-    // this likely means they have a zero balance
-    if (gameResults.creditors?.length > 0 || gameResults.debtors?.length > 0) {
-      console.log(`Player not found in creditors/debtors, assuming $0 balance`);
-      return "$0.00";
-    }
-
-    console.log(`No bet information available for this player`);
-    return "-";
+    // If we couldn't infer anything, default to zero
+    console.log(`No bet information could be determined for ${username}`);
+    return "$0.00";
   };
 
   // Render score input modal
