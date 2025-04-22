@@ -125,7 +125,8 @@ class GameService {
     stake: number,
     mode: "Strokeplay" | "Matchplay",
     name: string,
-    course: string
+    course: string,
+    socketId: string
   ): Promise<{ invites: GameInvite[]; savedGame: Game }> {
     try {
       const token = await this.getToken();
@@ -154,6 +155,7 @@ class GameService {
         mode,
         name,
         course,
+        socketId,
       });
 
       console.log("Game invite response:", response);
@@ -187,7 +189,8 @@ class GameService {
 
   // Accept a game invite
   async acceptGameInvite(
-    username: string
+    username: string,
+    socketId: string
   ): Promise<{ invite: GameInvite; game: Game }> {
     try {
       const token = await this.getToken();
@@ -199,6 +202,7 @@ class GameService {
       console.log(`Accepting game invite from: ${username}`);
       const response = await httpHelper.post("/invite/accept", token, {
         username,
+        socketId,
       });
       console.log("Accept game invite response:", response);
 

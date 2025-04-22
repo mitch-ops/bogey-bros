@@ -20,6 +20,7 @@ import friendsService from "../services/friendsService";
 import gameService, { GameInvite } from "../services/gameService";
 import { useAuth } from "../context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
+import { createSocketForUser, getSocket } from "../utils/socketUtils";
 //friend
 type Friend = {
   id: string;
@@ -179,8 +180,30 @@ const PlayScreen = () => {
 
       console.log(`Accepting game invite from username: ${senderUsername}`);
 
+      // Get current socket ID
+      let socketId = null;
+      const socket = getSocket();
+
+      if (socket && socket.connected) {
+        socketId = socket.id;
+        console.log("Using existing socket ID:", socketId);
+      } else {
+        // Create a new socket connection if one doesn't exist
+        try {
+          console.log("Creating new socket connection...");
+          socketId = await createSocketForUser();
+          console.log("New socket connection established with ID:", socketId);
+        } catch (socketError) {
+          console.warn("Failed to establish socket connection:", socketError);
+          // Continue without socket ID as fallback
+        }
+      }
+
       // Accept the invite through the API with the username string
-      const response = await gameService.acceptGameInvite(senderUsername);
+      const response = await gameService.acceptGameInvite(
+        senderUsername,
+        socketId
+      );
       console.log("Accept invite response:", response);
 
       // Extract game data from the response
@@ -701,6 +724,24 @@ const PlayScreen = () => {
     const effectiveGameName =
       gameName || `${course} - ${new Date().toLocaleDateString()}`;
 
+    // Get or create socket connection
+    let socketId = null;
+    const socket = getSocket();
+
+    if (socket && socket.connected) {
+      socketId = socket.id;
+      console.log("Using existing socket ID for game creation:", socketId);
+    } else {
+      try {
+        console.log("Creating new socket connection for game creation...");
+        socketId = await createSocketForUser();
+        console.log("New socket connection established with ID:", socketId);
+      } catch (socketError) {
+        console.warn("Failed to establish socket connection:", socketError);
+        // Continue without socket ID as fallback
+      }
+    }
+
     // For solo play (no friends selected)
     if (selectedFriends.length === 0) {
       try {
@@ -712,7 +753,8 @@ const PlayScreen = () => {
           betEnabled ? stake : 0,
           selectedMode as any,
           effectiveGameName,
-          course
+          course,
+          socketId
         );
 
         // Get the created game
@@ -760,7 +802,8 @@ const PlayScreen = () => {
         stake,
         selectedMode as any,
         effectiveGameName,
-        course
+        course,
+        socketId
       );
 
       // Get the created game

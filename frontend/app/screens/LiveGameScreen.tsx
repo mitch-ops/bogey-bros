@@ -20,6 +20,7 @@ import gameService, {
   Player,
 } from "../services/gameService";
 import { useAuth } from "../context/AuthContext";
+import { getSocket } from "../utils/socketUtils";
 
 // Define the route params type
 type PlayStackParamList = {
@@ -124,6 +125,43 @@ const LiveGameScreen = () => {
     } else {
       setIsLoading(false);
     }
+  }, [gameName]);
+
+  // Listen for socket events
+  useEffect(() => {
+    console.log("Setting up socket listeners for game:", gameName);
+
+    // Get the socket instance
+    const socket = getSocket();
+
+    if (socket) {
+      // Listen for score updates
+      socket.on("scoreUpdate", (data) => {
+        console.log("Received score update via socket:", data);
+
+        // If update is for current game, refresh data
+        if (data.gameName === gameName) {
+          loadGameData();
+        }
+      });
+
+      // Listen for game ended events
+      socket.on("game_ended", (data) => {
+        if (data.gameName === gameName) {
+          // Show results and handle game end
+          setResultsModalVisible(true);
+          loadGameData();
+        }
+      });
+    }
+
+    // Clean up listeners on unmount
+    return () => {
+      if (socket) {
+        socket.off("score_update");
+        socket.off("game_ended");
+      }
+    };
   }, [gameName]);
 
   // Function to transform database format to frontend format
