@@ -156,6 +156,8 @@ import { io } from "socket.io-client";
   for (let i = 1; i <= 10; i++) {
     users.push({ 
       username: `user${i}`, 
+      firstName: `user`,
+      lastName: `test${i}`,
       email: `user${i}@example.com`, 
       firstName: "test",
       lastName: "user",

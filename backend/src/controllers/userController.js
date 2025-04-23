@@ -23,6 +23,44 @@ const getUser = async (req, res) => {
   }
 };
 
+const getFriendInfo = async (req, res) => {
+  try {
+    const userId = req.user.userId; 
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (!user.friends || user.friends.length === 0) {
+      return res.status(200).json({ friends: [] });
+    }
+  
+    const friendsData = await User.find({
+      _id: { $in: user.friends }
+    })
+      .select('firstName lastName username handicap profilePicture')
+      .lean();
+  
+    const friends = friendsData.map(f => ({
+      firstName:       f.firstName,
+      lastName:        f.lastName,
+      username:        f.username,
+      handicap:        f.handicap,
+      profilePicture:  f.profilePicture
+                         ? f.profilePicture.buffer
+                             ? f.profilePicture.buffer.toString('base64')
+                             : Buffer.from(f.profilePicture).toString('base64')
+                         : null
+    }));
+
+    return res.status(200).json({ friends });
+  } catch (error) { 
+    console.error('Error fetching friend info:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 const updateUser = async (req, res) => {
   const updateData = { ...req.body };
 
@@ -126,6 +164,61 @@ const deleteUser = async (req, res) => {
   }
 };
 
+const getActivity = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const user = await User.findById(userId).select("friends");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const friendIds = user.friends;
+
+    const friends = await User.find({ _id: { $in: friendIds } }).select("firstName lastName username");
+
+    const gameBatches = await Promise.all(
+      friends.map(friend =>
+        Game.find({
+              participants: friend._id,
+              status: "Completed"
+            })
+            .sort({ startTime: -1 })
+            .limit(3)
+            .select("courseName startTime participants totals scores")
+            .lean()
+            .then(games => ({ friend, games }))
+      )
+    );
+
+    let nextId = 1;
+    const activities = [];
+    gameBatches.forEach(({ friend, games }) => {
+      games.forEach(game => {
+        const idx = game.participants
+                        .findIndex(p => p.toString() === friend._id.toString());
+        if (idx === -1) return;                    
+
+        const totalStrokes = game.totals[idx][2];
+
+        activities.push({
+          id: nextId++,
+          user: `${friend.firstName} ${friend.lastName ?? ""}.`,
+          course: game.courseName,
+          date: new Date(game.startTime).toLocaleDateString("en-US"),
+          score: totalStrokes,
+          holes: `${game.scores.length} holes`      
+        });
+      });
+    });
+
+    activities.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    return res.json({ activities });
+  } catch (err) {
+    console.error("Error fetching user activity:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -153,4 +246,33 @@ const getUserById = async (req, res) => {
   }
 };
 
-module.exports = { getUser, updateUser, deleteUser, getUserById };
+const updateProfilePicture = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    if (!req.file) {
+      return res.status(400).json({ message: 'No image file provided.' });
+    }
+
+    const imageBuffer = req.file.buffer;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { profilePicture: imageBuffer, updatedAt: new Date() },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    return res.status(200).json({ 
+      message: 'Profile picture updated successfully', 
+      user: updatedUser 
+    });
+  } catch (error) {
+    console.error('Error updating profile picture:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+module.exports = { getUser, getFriendInfo, updateUser, deleteUser, getUserById, updateProfilePicture, getActivity };
