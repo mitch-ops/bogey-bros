@@ -3,9 +3,9 @@ import { io } from "socket.io-client";
 
 // Socket instance that can be shared across the app
 let socketInstance = null;
-// export const API_URL = "https://bogey-bros.onrender.com";
-export const API_URL =
-  Platform.OS === "android" ? "http://10.0.2.2:3000" : "http://127.0.0.1:3000";
+export const API_URL = "https://bogey-bros.onrender.com";
+// export const API_URL =
+//   Platform.OS === "android" ? "http://10.0.2.2:3000" : "http://127.0.0.1:3000";
 
 // Create socket connection
 export const createSocketForUser = () => {
