@@ -47,6 +47,8 @@ const LiveGameScreen = () => {
   const { gameMode, stake, course, betEnabled, players, game, gameName } =
     route.params;
 
+  const isMatchplay = gameMode === "Matchplay";
+
   // Game state
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -598,6 +600,53 @@ const LiveGameScreen = () => {
     }
   };
 
+  // Get player matchplay status (how many holes up/down)
+  const getPlayerMatchplayStatus = (playerId) => {
+    if (!gameScores || !gameScores.participants) return "-";
+
+    // Find the player index
+    const playerIndex = gameScores.participants.findIndex(
+      (p) => p._id === playerId
+    );
+    if (playerIndex === -1) return "-";
+
+    // In a 2-player matchplay game
+    if (gameScores.participants.length === 2) {
+      // Get the other player's index
+      const otherPlayerIndex = playerIndex === 0 ? 1 : 0;
+
+      // Count holes won by each player
+      let playerWins = 0;
+      let opponentWins = 0;
+
+      // Loop through all holes that have been played
+      for (let hole = 0; hole < currentHole; hole++) {
+        const playerScore = gameScores.scores[playerIndex]?.[hole];
+        const opponentScore = gameScores.scores[otherPlayerIndex]?.[hole];
+
+        // Skip if either score is missing
+        if (playerScore === undefined || opponentScore === undefined) continue;
+
+        if (playerScore < opponentScore) {
+          playerWins++;
+        } else if (opponentScore < playerScore) {
+          opponentWins++;
+        }
+        // Tied holes don't affect the score
+      }
+
+      // Calculate how many holes up or down
+      const difference = playerWins - opponentWins;
+
+      // Format the status
+      if (difference === 0) return "AS"; // All Square
+      if (difference > 0) return `${difference} UP`;
+      return `${Math.abs(difference)} DOWN`;
+    }
+
+    return "-"; // For more than 2 players
+  };
+
   // End the game
   const handleEndGame = async () => {
     if (!gameName) return;
@@ -997,7 +1046,9 @@ const LiveGameScreen = () => {
                   {participant._id === currentUserId ? " (You)" : ""}
                 </Text>
                 <Text style={[styles.resultsText, { flex: 1 }]}>
-                  {getPlayerTotal(participant._id)}
+                  {isMatchplay
+                    ? getPlayerMatchplayStatus(participant._id)
+                    : getPlayerTotal(participant._id)}
                 </Text>
                 {betEnabled && (
                   <Text
@@ -1108,7 +1159,9 @@ const LiveGameScreen = () => {
             <View style={[styles.row, styles.tableHeader]}>
               <Text style={[styles.cell, styles.tableHeaderText]}>Player</Text>
               <Text style={[styles.cell, styles.tableHeaderText]}>Score</Text>
-              <Text style={[styles.cell, styles.tableHeaderText]}>Total</Text>
+              <Text style={[styles.cell, styles.tableHeaderText]}>
+                {isMatchplay ? "Standing" : "Total"}
+              </Text>
               <Text style={[styles.cell, styles.tableHeaderText]}>Net $</Text>
             </View>
 
@@ -1121,7 +1174,9 @@ const LiveGameScreen = () => {
                     {getPlayerScore(participant._id)}
                   </Text>
                   <Text style={styles.cell}>
-                    {getPlayerTotal(participant._id)}
+                    {isMatchplay
+                      ? getPlayerMatchplayStatus(participant._id)
+                      : getPlayerTotal(participant._id)}
                   </Text>
                   <Text
                     style={[
