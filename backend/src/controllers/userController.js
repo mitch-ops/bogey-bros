@@ -33,20 +33,25 @@ const getFriendInfo = async (req, res) => {
     }
 
     if (!user.friends || user.friends.length === 0) {
-      return [];
+      return res.status(200).json({ friends: [] });
     }
   
     const friendsData = await User.find({
       _id: { $in: user.friends }
     })
-      .select('firstName lastName username handicap')
+      .select('firstName lastName username handicap profilePicture')
       .lean();
   
     const friends = friendsData.map(f => ({
-      firstName: f.firstName,
-      lastName:  f.lastName,
-      username:  f.username,
-      handicap:  f.handicap
+      firstName:       f.firstName,
+      lastName:        f.lastName,
+      username:        f.username,
+      handicap:        f.handicap,
+      profilePicture:  f.profilePicture
+                         ? f.profilePicture.buffer
+                             ? f.profilePicture.buffer.toString('base64')
+                             : Buffer.from(f.profilePicture).toString('base64')
+                         : null
     }));
 
     return res.status(200).json({ friends });
@@ -54,7 +59,7 @@ const getFriendInfo = async (req, res) => {
     console.error('Error fetching friend info:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
-}
+};
 
 const updateUser = async (req, res) => {
   const updateData = { ...req.body };
