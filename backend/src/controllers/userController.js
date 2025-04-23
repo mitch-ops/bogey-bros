@@ -23,6 +23,39 @@ const getUser = async (req, res) => {
   }
 };
 
+const getFriendInfo = async (req, res) => {
+  try {
+    const userId = req.user.userId; 
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (!user.friends || user.friends.length === 0) {
+      return [];
+    }
+  
+    const friendsData = await User.find({
+      _id: { $in: user.friends }
+    })
+      .select('firstName lastName username handicap')
+      .lean();
+  
+    const friends = friendsData.map(f => ({
+      firstName: f.firstName,
+      lastName:  f.lastName,
+      username:  f.username,
+      handicap:  f.handicap
+    }));
+
+    return res.status(200).json({ friends });
+  } catch (error) { 
+    console.error('Error fetching friend info:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+}
+
 const updateUser = async (req, res) => {
   const updateData = { ...req.body };
 
@@ -237,4 +270,4 @@ const updateProfilePicture = async (req, res) => {
   }
 };
 
-module.exports = { getUser, updateUser, deleteUser, getUserById, updateProfilePicture, getActivity };
+module.exports = { getUser, getFriendInfo, updateUser, deleteUser, getUserById, updateProfilePicture, getActivity };
