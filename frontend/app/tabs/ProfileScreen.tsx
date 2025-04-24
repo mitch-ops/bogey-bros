@@ -16,7 +16,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import defaultAvatar from "../../assets/defaultpfp.jpg";
 
 const ProfileScreen = ({ navigation }) => {
-  const { authState } = useAuth();
+  const { authState, refreshAuthToken } = useAuth();
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [firstName, setFirstName] = useState("Loading...");
   const [lastName, setLastName] = useState("");
@@ -26,6 +26,7 @@ const ProfileScreen = ({ navigation }) => {
   useFocusEffect(
     useCallback(() => {
       const fetchUserData = async () => {
+        refreshAuthToken!();
         try {
           const { data } = await axios.get(`${API_URL}/user`);
           setFirstName(

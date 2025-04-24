@@ -16,7 +16,7 @@ import { useAuth } from "../context/AuthContext";
 import defaultAvatar from "../../assets/defaultpfp.jpg";
 
 const EditProfileScreen = ({ navigation }) => {
-  const { authState } = useAuth();
+  const { authState, refreshAuthToken } = useAuth();
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -28,6 +28,7 @@ const EditProfileScreen = ({ navigation }) => {
   useEffect(() => {
     if (!authState?.authenticated) return;
     (async () => {
+      refreshAuthToken!();
       try {
         const { data } = await axios.get(`${API_URL}/user`);
         setFirstName(data.firstName || "");
@@ -85,7 +86,7 @@ const EditProfileScreen = ({ navigation }) => {
         name: filename,
         type: mimeType,
       } as any);
-
+      refreshAuthToken!();
       await axios.put(`${API_URL}/user/profilePicture`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -99,7 +100,9 @@ const EditProfileScreen = ({ navigation }) => {
 
   // Save text fields
   const handleSave = async () => {
+
     try {
+      refreshAuthToken!();
       const updateFields = { firstName, lastName, username, bio };
       await axios.put(`${API_URL}/user`, updateFields);
       Alert.alert("Success", "Profile updated!");
