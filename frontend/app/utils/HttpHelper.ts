@@ -29,8 +29,8 @@ class HttpHelper {
       console.error(`GET request failed for ${endpoint}:`, error);
       if (error.response) {
         throw new Error(
-          `HTTP error: ${error.response.status} - ${
-            error.response.data?.message || "Unknown error"
+          `HTTP error: ${error.response.status} - 
+            ${JSON.stringify(error.response)}
           }`
         );
       } else {

@@ -1,3 +1,4 @@
+import HttpHelper from "../utils/HttpHelper";
 import httpService from "../utils/HttpHelper";
 import * as SecureStore from "expo-secure-store";
 
@@ -7,6 +8,8 @@ const TOKEN_KEY = "my-jwt";
 // Define types
 export interface Friend {
   id: string;
+  firstname: string;
+  lastname: string;
   username: string;
   handicap?: number;
   avatar?: string;
@@ -32,6 +35,91 @@ class FriendsService {
   }
 
   // Get current user's friends
+  // async getFriends(): Promise<Friend[]> {
+  //   try {
+  //     const token = await this.getToken();
+
+  //     if (!token) {
+  //       throw new Error("Authentication token not found");
+  //     }
+
+  //     console.log("Fetching current user data...");
+  //     // Get the current user profile
+  //     const userResponse = await httpService.get("/user/getFriendInfo", token);
+  //     console.log("User data:", JSON.stringify(userResponse));
+
+  //     if (
+  //       !userResponse ||
+  //       !userResponse.friends ||
+  //       !Array.isArray(userResponse.friends)
+  //     ) {
+  //       console.log("No friends array found in user profile");
+  //       return [];
+  //     }
+
+  //     // If the friends array is empty, return an empty array
+  //     if (userResponse.friends.length === 0) {
+  //       console.log("User has no friends");
+  //       return [];
+  //     }
+
+  //     console.log(
+  //       `Found ${userResponse.friends.length} friend IDs in user profile`
+  //     );
+
+  //     // Extract the friend IDs from the friends array
+  //     const friendIds = userResponse.friends
+  //       .map((friendId: any) => {
+  //         // Handle different possible formats of ObjectId
+  //         if (typeof friendId === "string") {
+  //           return friendId;
+  //         } else if (friendId.$oid) {
+  //           return friendId.$oid;
+  //         } else if (friendId._id) {
+  //           return friendId._id;
+  //         } else {
+  //           console.log("Unexpected friend ID format:", friendId);
+  //           return null;
+  //         }
+  //       })
+  //       .filter(Boolean); // Remove any null values
+
+  //     console.log("Extracted friend IDs:", friendIds);
+
+  //     // Now fetch each friend's details using the new endpoint
+  //     const friendsPromises = friendIds.map(async (id) => {
+  //       try {
+  //         console.log(`Fetching details for friend ID: ${id}`);
+  //         const friendData = await httpService.get(`/users/${id}`, token);
+  //         console.log(`Friend data for ID ${id}:`, friendData);
+
+  //         return {
+  //           id: friendData._id || id,
+  //           username: friendData.username || `User ${id.substring(0, 6)}...`,
+  //           handicap: friendData.handicap?.toString() || "N/A",
+  //           avatar: friendData.avatar,
+  //         };
+  //       } catch (error) {
+  //         console.error(`Error fetching friend ID ${id}:`, error);
+  //         // Return a placeholder for failed requests
+  //         return {
+  //           id: id,
+  //           username: `User ${id.substring(0, 6)}...`,
+  //           handicap: "N/A",
+  //         };
+  //       }
+  //     });
+
+  //     const friendsResults = await Promise.all(friendsPromises);
+  //     console.log("Retrieved friend details:", JSON.stringify(friendsResults));
+
+  //     return friendsResults;
+  //   } catch (error) {
+  //     console.error("Error fetching friends:", error);
+  //     throw error;
+  //   }
+  // }
+
   async getFriends(): Promise<Friend[]> {
     try {
       const token = await this.getToken();
@@ -42,8 +130,8 @@ class FriendsService {
 
       console.log("Fetching current user data...");
       // Get the current user profile
-      const userResponse = await httpService.get("/user", token);
-      console.log("User data:", JSON.stringify(userResponse));
+      const userResponse = await httpService.get("/user/getFriendInfo", token);
+      // console.log("User data:", JSON.stringify(userResponse));
 
       if (
         !userResponse ||
@@ -63,54 +151,17 @@ class FriendsService {
       console.log(
         `Found ${userResponse.friends.length} friend IDs in user profile`
       );
-
-      // Extract the friend IDs from the friends array
-      const friendIds = userResponse.friends
-        .map((friendId: any) => {
-          // Handle different possible formats of ObjectId
-          if (typeof friendId === "string") {
-            return friendId;
-          } else if (friendId.$oid) {
-            return friendId.$oid;
-          } else if (friendId._id) {
-            return friendId._id;
-          } else {
-            console.log("Unexpected friend ID format:", friendId);
-            return null;
-          }
-        })
-        .filter(Boolean); // Remove any null values
-
-      console.log("Extracted friend IDs:", friendIds);
-
-      // Now fetch each friend's details using the new endpoint
-      const friendsPromises = friendIds.map(async (id) => {
-        try {
-          console.log(`Fetching details for friend ID: ${id}`);
-          const friendData = await httpService.get(`/users/${id}`, token);
-          console.log(`Friend data for ID ${id}:`, friendData);
-
-          return {
-            id: friendData._id || id,
-            username: friendData.username || `User ${id.substring(0, 6)}...`,
-            handicap: friendData.handicap?.toString() || "N/A",
-            avatar: friendData.avatar,
-          };
-        } catch (error) {
-          console.error(`Error fetching friend ID ${id}:`, error);
-          // Return a placeholder for failed requests
-          return {
-            id: id,
-            username: `User ${id.substring(0, 6)}...`,
-            handicap: "N/A",
-          };
-        }
-      });
-
-      const friendsResults = await Promise.all(friendsPromises);
-      console.log("Retrieved friend details:", JSON.stringify(friendsResults));
-
-      return friendsResults;
+      
+      const formattedFriends: Friend[] = userResponse.friends.map((f: any, index: number) => ({
+        id: f.id || `friend-${index}`, // Fallback if no ID provided
+        firstname: f.firstName,
+        lastname: f.lastName,
+        username: f.username,
+        handicap: f.handicap,
+        avatar: f.profilePicture,
+      }));
+      
+      return formattedFriends;
     } catch (error) {
       console.error("Error fetching friends:", error);
       throw error;

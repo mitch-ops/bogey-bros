@@ -9,9 +9,21 @@ import {
   StyleSheet,
   ImageBackground,
 } from "react-native";
+import HttpHelper from "../utils/HttpHelper";
 import golfBackground from '../../assets/GolfballBackground.png'
+import { useAuth } from "../context/AuthContext";
 
 const ProfileScreen = ({navigation}) => {
+  const { authState } = useAuth();
+  const userInfo = async () => {
+    try {
+      const resp = await HttpHelper.get('/user', authState!.token);
+      console.log("Response", resp);
+    } catch (e) {
+      console.error("Error user", e);
+    }
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       
@@ -43,7 +55,9 @@ const ProfileScreen = ({navigation}) => {
           </Text>
         </View>
       </View>
-
+      <TouchableOpacity onPress={userInfo}>
+        <Text> User info</Text>
+      </TouchableOpacity>
       {/* Handicap */}
       <View style={styles.handicapContainer}>
         <Text style={styles.header}>Handicap</Text>

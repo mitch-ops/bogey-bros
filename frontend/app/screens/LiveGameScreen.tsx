@@ -32,6 +32,7 @@ type PlayStackParamList = {
     players: Player[];
     game: any; // Update this with proper type if available
     gameName: string;
+    gameCreator: boolean;
   };
   PlayMain: undefined;
 };
@@ -41,10 +42,10 @@ type LiveGameRouteProp = RouteProp<PlayStackParamList, "LiveGame">;
 const LiveGameScreen = () => {
   const navigation = useNavigation();
   const route = useRoute<LiveGameRouteProp>();
-  const { authState } = useAuth();
+  const { authState, refreshAuthToken } = useAuth();
 
   // Extract parameters
-  const { gameMode, stake, course, betEnabled, players, game, gameName } =
+  const { gameMode, stake, course, betEnabled, players, game, gameName, gameCreator } =
     route.params;
 
   const isMatchplay = gameMode === "Matchplay";
@@ -77,6 +78,7 @@ const LiveGameScreen = () => {
   const isGameCreator =
     game?.participants?.length > 0 && game.participants[0] === currentUserId;
 
+  
   // This function builds a direct mapping between player IDs and usernames
   const buildPlayerMappings = useCallback(() => {
     // Create maps for both ID→Username and Username→ID
@@ -450,6 +452,7 @@ const LiveGameScreen = () => {
 
   // Save a player's score
   const saveScore = async () => {
+    await refreshAuthToken!();
     if (!selectedPlayerId) {
       console.error("No player selected");
       Alert.alert("Error", "No player selected. Please try again.");
@@ -650,7 +653,7 @@ const LiveGameScreen = () => {
   // End the game
   const handleEndGame = async () => {
     if (!gameName) return;
-
+    refreshAuthToken!();
     // Confirm with the user
     Alert.alert(
       "End Game",
@@ -690,6 +693,7 @@ const LiveGameScreen = () => {
               Alert.alert("Error", "Failed to end the game. Please try again.");
             } finally {
               setIsEndingGame(false);
+              setResultsModalVisible(true);
             }
           },
         },
@@ -976,7 +980,7 @@ const LiveGameScreen = () => {
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>
-            Enter Score for Hole {currentHole}
+            Enter Score for Hole {currentHole} Game Creator: {gameCreator}
           </Text>
 
           <TextInput
@@ -1072,7 +1076,15 @@ const LiveGameScreen = () => {
               </View>
             ))}
           </View>
-
+          {gameCreator ? ( <TouchableOpacity
+            style={styles.closeButton}
+            onPress={handleEndGame}
+            >
+            <Text style={styles.closeButtonText}>End Game</Text>
+          </TouchableOpacity>) : null
+          
+          }
+          
           <TouchableOpacity
             style={styles.closeButton}
             onPress={() => setResultsModalVisible(false)}

@@ -101,18 +101,6 @@ const Login = () => {
 
   return (
     <View className="flex-1">
-      <Modal animationType="fade" transparent={true} visible={loading}>
-        <View style={styles.centeredView}>
-          <View style={styles.modalView}>
-            <ActivityIndicator
-              style={styles.modalActivity}
-              size="small"
-              color="#434371"
-            />
-            <Text style={styles.modalText}>Signing in...</Text>
-          </View>
-        </View>
-      </Modal>
       {registerFields ? (
         <RegisterScreen
           firstname={firstname}

@@ -40,7 +40,7 @@ const FriendsScreen = () => {
   }, [authState?.authenticated]);
 
   const loadData = async () => {
-    refreshAuthToken!();
+    await refreshAuthToken!();
     
     if (!authState?.authenticated) {
       setError("You must be logged in to view friends");
@@ -58,6 +58,7 @@ const FriendsScreen = () => {
       let friendsData;
       try {
         friendsData = await friendsService.getFriends();
+        console.log("Friends Data: ", friendsData)
         console.log("Friends data loaded:", friendsData.length);
         setFriends(friendsData);
       } catch (friendsError) {
@@ -350,17 +351,13 @@ const FriendsScreen = () => {
                   {friends.map((friend) => (
                     <View key={friend.id} style={styles.friendCard}>
                       <Image
-                        source={
-                          friend.avatar
-                            ? { uri: friend.avatar }
-                            : require("../../assets/Avatar.png")
-                        }
+                        source={{ uri: `data:image/jpeg;base64,${friend.avatar}` }}
                         style={styles.friendImage}
                       />
                       <View style={styles.friendInfo}>
-                        <Text style={styles.friendName}>{friend.username}</Text>
+                        <Text style={styles.friendName}>{friend.firstname} {friend.lastname}</Text>
                         <Text style={styles.friendHandicap}>
-                          Handicap: {friend.handicap || "N/A"}
+                          Handicap: {friend.handicap}
                         </Text>
                       </View>
                     </View>

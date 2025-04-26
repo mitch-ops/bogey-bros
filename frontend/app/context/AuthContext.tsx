@@ -3,6 +3,7 @@ import axios from "axios";
 import * as SecureStore from "expo-secure-store";
 import { jwtDecode } from "jwt-decode";
 import { Platform } from "react-native";
+import { Modal, View, ActivityIndicator, Text } from 'react-native';
 
 interface AuthProps {
   authState?: { token: string | null; authenticated: boolean | null };
@@ -47,7 +48,7 @@ export const AuthProvider = ({ children }: any) => {
   useEffect(() => {
     const loadToken = async () => {
       setLoading(true);
-      refresh();
+      await refresh();
       setLoading(false);
     };
     loadToken();
@@ -212,5 +213,16 @@ export const AuthProvider = ({ children }: any) => {
     authState,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+        <Modal visible={loading} animationType="fade" transparent>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+            <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 10 }}>
+            <ActivityIndicator size="small" color="#434371" />
+            <Text style={{ marginTop: 10 }}>Authenticating...</Text>
+            </View>
+        </View>
+        </Modal>
+        {children}
+    </AuthContext.Provider>);
 };

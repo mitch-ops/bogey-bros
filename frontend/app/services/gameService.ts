@@ -121,7 +121,7 @@ class GameService {
 
   // Send game invites to multiple users
   async sendGameInvites(
-    receiverUserIds: string[],
+    receiverUsernames: string[],
     stake: number,
     mode: "Strokeplay" | "Matchplay",
     name: string,
@@ -135,15 +135,6 @@ class GameService {
         throw new Error("Authentication token not found");
       }
 
-      console.log(
-        `Converting ${receiverUserIds.length} user IDs to usernames...`
-      );
-
-      // If there are no receivers (solo play), use an empty array
-      let receiverUsernames: string[] = [];
-      if (receiverUserIds.length > 0) {
-        receiverUsernames = await this.getUsernamesByIds(receiverUserIds);
-      }
 
       console.log(`Sending game invites to: ${receiverUsernames.join(", ")}`);
       console.log(`Game details: ${mode}, $${stake}, ${course}`);
@@ -276,8 +267,8 @@ class GameService {
       }
 
       console.log(`Fetching scores for game: ${gameName}`);
-
-      const response = await httpHelper.get(`/game/scores/${gameName}`, token);
+      const encodedName = encodeURIComponent(gameName);
+      const response = await httpHelper.get(`/game/scores/${encodedName}`, token);
 
       console.log("Game scores response:", response);
       return response;
@@ -295,10 +286,10 @@ class GameService {
       if (!token) {
         throw new Error("Authentication token not found");
       }
-
+      const encodedName = encodeURIComponent(gameName);
       console.log(`Fetching results for game: ${gameName}`);
 
-      const response = await httpHelper.get(`/game/results/${gameName}`, token);
+      const response = await httpHelper.get(`/game/results/${encodedName}`, token);
 
       console.log("Game results response:", response);
       return response;

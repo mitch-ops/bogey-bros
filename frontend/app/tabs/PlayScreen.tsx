@@ -21,6 +21,7 @@ import gameService, { GameInvite } from "../services/gameService";
 import { useAuth } from "../context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { createSocketForUser, getSocket } from "../utils/socketUtils";
+import HttpHelper from "../utils/HttpHelper";
 //friend
 type Friend = {
   id: string;
@@ -96,13 +97,13 @@ const PlayScreen = () => {
 
   // Load friends data
   const loadFriends = useCallback(async () => {
-    refreshAuthToken!();
+    await refreshAuthToken!();
     if (!authState?.authenticated) return;
 
     setLoadingFriends(true);
     try {
       const friendsData = await friendsService.getFriends();
-      console.log("Loaded friends:", friendsData);
+      // console.log("Loaded friends:", friendsData);
       const mappedFriends = friendsData.map((friend) => ({
         id: friend.id,
         username: friend.username || "Unknown", // Ensure 'username' exists
@@ -120,7 +121,7 @@ const PlayScreen = () => {
 
   // Load game invites
   const loadGameInvites = useCallback(async () => {
-    refreshAuthToken!();
+    await refreshAuthToken!();
     if (!authState?.authenticated) return;
 
     setLoadingInvites(true);
@@ -208,7 +209,15 @@ const PlayScreen = () => {
 
       // Extract game data from the response
       const game = response.game;
+      const userInfoFromApi = await HttpHelper.get('/user', authState!.token);
 
+      const currentUser = {
+        id: userInfoFromApi._id,
+        username: userInfoFromApi.username,
+        handicap: userInfoFromApi.handicap,
+        avatar: userInfoFromApi.profilePicture,
+      };
+      
       if (game) {
         // Prepare player list
         // Since we don't have player details from the game object,
@@ -216,12 +225,12 @@ const PlayScreen = () => {
         const players = game.participants.map(
           (participantId: string, index: number) => {
             // For the current user
-            if (participantId === authState?.userId) {
+            if (participantId === currentUser.id) {
               return {
-                id: authState.userId,
-                username: authState.username || "You",
-                handicap: authState.handicap || "0",
-                avatar: authState.avatar,
+                id: currentUser.id,
+                username: currentUser.username,
+                handicap: currentUser.handicap,
+                avatar: currentUser.avatar,
               };
             }
 
@@ -253,6 +262,7 @@ const PlayScreen = () => {
           players: players,
           game: game, // Pass the entire game object
           gameName: game.gameName, // To identify the game
+          gameCreator: false
         });
 
         // Close the invites modal
@@ -720,6 +730,7 @@ const PlayScreen = () => {
       return;
     }
 
+    await refreshAuthToken!();
     // Ensure we have a game name
     const effectiveGameName =
       gameName || `${course} - ${new Date().toLocaleDateString()}`;
@@ -741,6 +752,15 @@ const PlayScreen = () => {
         // Continue without socket ID as fallback
       }
     }
+    // Create a player object for the current user
+    const userInfoFromApi = await HttpHelper.get('/user', authState!.token);
+
+    const currentUser = {
+      id: userInfoFromApi._id,
+      username: userInfoFromApi.username,
+      handicap: userInfoFromApi.handicap,
+      avatar: userInfoFromApi.profilePicture,
+    };
 
     // For solo play (no friends selected)
     if (selectedFriends.length === 0) {
@@ -760,13 +780,6 @@ const PlayScreen = () => {
         // Get the created game
         const game = response.savedGame;
 
-        // Create a player object for the current user
-        const currentUser = {
-          id: authState?.userId || "current-user",
-          username: authState?.username || "You",
-          handicap: authState?.handicap || "0",
-          avatar: authState?.avatar,
-        };
 
         // Navigate to the LiveGame screen
         navigation.navigate("LiveGame", {
@@ -777,6 +790,7 @@ const PlayScreen = () => {
           players: [currentUser],
           game: game, // Pass the entire game object
           gameName: effectiveGameName, // To identify the game
+          gameCreator: true,
         });
       } catch (error) {
         console.error("Error creating solo game:", error);
@@ -793,12 +807,11 @@ const PlayScreen = () => {
       setIsSending(true);
 
       // Get IDs of selected friends (not usernames)
-      const friendIds = selectedFriends.map((friend) => friend.id);
-
+      const friendUsernames = selectedFriends.map((friend) => friend.username);
       // Send the invites (which will create a game on the backend)
       // This will convert the IDs to usernames internally
       const response = await gameService.sendGameInvites(
-        friendIds,
+        friendUsernames,
         stake,
         selectedMode as any,
         effectiveGameName,
@@ -810,13 +823,6 @@ const PlayScreen = () => {
       const game = response.savedGame;
 
       if (game) {
-        // Create a player object for the current user
-        const currentUser = {
-          id: authState?.userId || "current-user",
-          username: authState?.username || "You",
-          handicap: authState?.handicap || "0",
-          avatar: authState?.avatar,
-        };
 
         // Create player objects for invited friends
         // These are placeholders since they haven't accepted yet
@@ -841,6 +847,7 @@ const PlayScreen = () => {
                   players: [currentUser, ...pendingPlayers],
                   game: game, // Pass the entire game object
                   gameName: effectiveGameName, // To identify the game
+                  gameCreator: true,
                 });
 
                 // Clear selections
@@ -938,7 +945,7 @@ const PlayScreen = () => {
         }}
       >
         <TouchableOpacity
-          onPress={() => setBetEnabled(false)}
+          onPress={() => {setBetEnabled(false); setStake(0);}}
           style={{
             flex: 1,
             padding: 12,
@@ -950,7 +957,7 @@ const PlayScreen = () => {
           <Text style={{ color: !betEnabled ? "white" : "black" }}>No bet</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => setBetEnabled(true)}
+          onPress={() => {setBetEnabled(true); setStake(7)}}
           style={{
             flex: 1,
             padding: 12,
