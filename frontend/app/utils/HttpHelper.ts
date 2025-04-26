@@ -26,7 +26,8 @@ class HttpHelper {
       const response = await axios.get(url, { headers });
       return response.data;
     } catch (error: any) {
-      console.error(`GET request failed for ${endpoint}:`, error);
+      if(endpoint !== '/friends')
+        console.error(`GET request failed for ${endpoint}:`, error);
       if (error.response) {
         throw new Error(
           `HTTP error: ${error.response.status} - 

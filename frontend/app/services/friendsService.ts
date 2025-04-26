@@ -240,7 +240,7 @@ class FriendsService {
       );
       return [];
     } catch (error) {
-      console.error("Error fetching pending friend requests:", error);
+      console.log("Error fetching pending friend requests:", error);
       throw error;
     }
   }

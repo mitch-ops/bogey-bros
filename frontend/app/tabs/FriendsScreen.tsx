@@ -71,7 +71,7 @@ const FriendsScreen = () => {
         console.log("Pending requests loaded:", pendingData.length);
         setPendingRequests(pendingData);
       } catch (requestsError) {
-        console.error("Error loading friend requests:", requestsError);
+        console.log("Error loading friend requests:", requestsError);
 
         // Only set error if both operations failed
         if (!friendsData) {
@@ -286,7 +286,7 @@ const FriendsScreen = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Friends</Text>
         <View style={styles.headerButtons}>
@@ -382,7 +382,7 @@ const FriendsScreen = () => {
 
       {renderAddFriendModal()}
       {renderPendingRequestsModal()}
-    </SafeAreaView>
+    </View>
   );
 };
 

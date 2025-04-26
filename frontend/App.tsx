@@ -34,7 +34,7 @@ export const Layout = () => {
       <Stack.Navigator>
         {authState?.authenticated ? (
           <Stack.Screen
-            name="Tabs"
+            name="Bogey Bros"
             component={TabNavigator}
             options={{
               headerRight: () => <Button onPress={onLogout} title="Sign Out" />,
