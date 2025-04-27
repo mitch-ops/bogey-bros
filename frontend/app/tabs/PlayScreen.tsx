@@ -608,11 +608,7 @@ const PlayScreen = () => {
                   onPress={() => toggleFriendSelection(item)}
                 >
                   <Image
-                    source={
-                      item.avatar
-                        ? { uri: item.avatar }
-                        : require("../../assets/Avatar.png")
-                    }
+                    source={{ uri: `data:image/jpeg;base64,${item.avatar}` }}
                     style={{
                       width: 40,
                       height: 40,
@@ -1178,7 +1174,6 @@ const styles = StyleSheet.create({
     color: "white",
     marginRight: 5,
     fontSize: 14,
-    flex: 1,
   },
   removeButton: {
     padding: 3,
