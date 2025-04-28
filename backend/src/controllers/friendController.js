@@ -17,7 +17,7 @@ const sendFriendRequest = async (req, res) => {
             return res.status(400).json({ message: "You can't send a friend request to yourself" });
         }
         
-        // Avoid sending friend request to an already friend
+        // Avoid sending friend request to a friend
         const sender = await User.findById(senderId);
         if (!sender) {
             return res.status(404).json({ message: 'Sender not found' });
@@ -40,7 +40,7 @@ const sendFriendRequest = async (req, res) => {
         const requestData = {
             senderId: new mongoose.Types.ObjectId(senderId),
             receiverId: new mongoose.Types.ObjectId(receiver._id.toString()),
-            status: 'Pending',  // Capital P to match the validation enum
+            status: 'Pending',
             createdAt: new Date(),
             updatedAt: new Date()
         };
@@ -139,7 +139,7 @@ const getFriendRequests = async (req, res) => {
     try {
         const requests = await FriendRequest.find({ 
             receiverId: req.user.userId, 
-            status: 'Pending'  // Capitalized to match database validation
+            status: 'Pending'
         }).populate('senderId', 'username');
 
         console.log(requests);

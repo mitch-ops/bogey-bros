@@ -74,8 +74,7 @@ const sendPlayInvite = async (req, res) => {
 
     const savedGame = await newGame.save();
 
-    // -- WebSocket Integration: Have the sender’s socket join the game room --
-    // If the client provided a socketId, add that socket to a room (using gameName as room identifier)
+    // Have the sender’s socket join the game room 
     if (socketId) {
       const io = req.app.get('socketio'); // Access Socket.IO instance
       const senderSocket = io.sockets.sockets.get(socketId);
@@ -96,7 +95,7 @@ const sendPlayInvite = async (req, res) => {
 
 const acceptPlayInvite = async (req, res) => {
   try {
-    const { username, socketId } = req.body;  // socketId added here
+    const { username, socketId } = req.body;  // socketId 
     const sender = await User.findOne({ username });
     if (!sender) {
       return res.status(404).json({ message: "Sender not found" });
@@ -126,7 +125,7 @@ const acceptPlayInvite = async (req, res) => {
     await playInvite.save();
     await game.save();
 
-    // -- WebSocket Integration: Have the accepted user's socket join the game room --
+    // Have the accepted user's socket join the game room
     if (socketId) {
       const io = req.app.get('socketio');
       const receiverSocket = io.sockets.sockets.get(socketId);
@@ -242,7 +241,7 @@ const updateScore = async (req, res) => {
     game.updatedAt = new Date();
     await game.save();
 
-    // -- WebSocket Integration: Emit a score update event to all sockets in the game room --
+    // Emit a score update event to all sockets in the game room
     const io = req.app.get('socketio');
     io.to(game.gameName).emit('scoreUpdate', {
       gameName: game.gameName,
