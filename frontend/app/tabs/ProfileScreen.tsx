@@ -1,68 +1,125 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
-  ScrollView,
-  TextInput,
   Image,
   TouchableOpacity,
   StyleSheet,
   ImageBackground,
+  Alert,
+  ScrollView,
+  ActivityIndicator,
 } from "react-native";
-import HttpHelper from "../utils/HttpHelper";
-import golfBackground from '../../assets/GolfballBackground.png'
 import { useAuth } from "../context/AuthContext";
+import { API_URL } from "../context/AuthContext";
+import defaultAvatar from "../../assets/defaultpfp.jpg"; // fallback if no avatar
+import golfBackground from "../../assets/GolfballBackground.png";
 
-const ProfileScreen = ({navigation}) => {
-  const { authState } = useAuth();
-  const userInfo = async () => {
+const ProfileScreen = ({ navigation }) => {
+  const { authState, refreshAuthToken } = useAuth();
+  const [profileData, setProfileData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+
+  const fetchProfile = async () => {
     try {
-      const resp = await HttpHelper.get('/user', authState!.token);
-      console.log("Response", resp);
-    } catch (e) {
-      console.error("Error user", e);
+      setLoading(true);
+      await refreshAuthToken?.();
+      const response = await fetch(`${API_URL}/user`, {
+        headers: {
+          Authorization: `Bearer ${authState?.token}`,
+        },
+      });
+
+      if (!response.ok) throw new Error("Failed to fetch user data");
+
+      const data = await response.json();
+      setProfileData(data);
+
+      if (data.profilePicture) {
+        setAvatarUri(`data:image/jpeg;base64,${data.profilePicture}`);
+      }
+    } catch (error) {
+      console.error("Profile fetch error:", error);
+
+      Alert.alert(
+        "Failed to load profile",
+        "Something went wrong while fetching your profile. Please try again.",
+        [
+          {
+            text: "Retry",
+            onPress: () => fetchProfile(),
+          },
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+        ]
+      );
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FFFFFF" />
+      </View>
+    );
+  }
+
+  if (!profileData) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={{ color: "white" }}>No profile data available.</Text>
+      </View>
+    );
   }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      
-      {/* Avatar and Name area*/}
-      <Image style={styles.avatar} source={require('../../assets/golferprofile.jpg')} />
+      {/* Avatar */}
+      <Image
+        style={styles.avatar}
+        source={avatarUri ? { uri: avatarUri } : defaultAvatar}
+      />
+
+      {/* Name */}
       <View style={styles.nameView}>
-        <Text style={styles.nameText}>First name</Text>
-        <Text style={styles.nameText}>Last name</Text>
+        <Text style={styles.nameText}>{profileData.firstName}</Text>
+        <Text style={styles.nameText}>{profileData.lastName}</Text>
       </View>
-      <TouchableOpacity 
-        style={styles.editProfile} 
-        onPress={() =>
-          navigation.navigate('EditView')
-        }
+
+      {/* Edit Button */}
+      <TouchableOpacity
+        style={styles.editProfile}
+        onPress={() => navigation.navigate("EditView")}
       >
         <Text style={styles.editText}>Edit Profile</Text>
       </TouchableOpacity>
 
-      {/* Bio Area*/}
+      {/* Bio */}
       <View style={styles.bioView}>
         <Text style={styles.header}>Bio:</Text>
         <View style={styles.bioBodyContainer}>
           <Text style={styles.bioBodyText}>
-            ⛳️ Pro Golfer | ⛅️ Chasing Birdies{"\n"}
-            🏆 5 | 🔥 Always on Par{"\n"}
-            📍 Dallas | 💪 Never Stop Grinding{"\n"}
-            🌍 TGR Foundation{"\n"}
-            📩 DM for sponsorships & collabs
+            {profileData.bio || "No bio provided."}
           </Text>
         </View>
       </View>
-      <TouchableOpacity onPress={userInfo}>
-        <Text> User info</Text>
-      </TouchableOpacity>
+
       {/* Handicap */}
       <View style={styles.handicapContainer}>
         <Text style={styles.header}>Handicap</Text>
         <ImageBackground style={styles.handicapImage} source={golfBackground}>
-          <Text style={styles.handicapText}>23.1</Text>
+          <Text style={styles.handicapText}>
+            {profileData.handicap ?? "N/A"}
+          </Text>
         </ImageBackground>
       </View>
     </ScrollView>
@@ -71,25 +128,38 @@ const ProfileScreen = ({navigation}) => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     padding: 20,
-    alignItems: "center"
+    alignItems: "center",
+    backgroundColor: "#fff", 
   },
   avatar: {
     width: 150,
     height: 150,
     borderRadius: 75,
     borderWidth: 4,
-    borderColor: "#434371", 
-    justifyContent: "center",
-    alignItems: "center",
+    borderColor: "#434371",
+    marginBottom: 10,
   },
   nameView: {
-    flexDirection: "row"
+    flexDirection: "row",
+    marginBottom: 10,
   },
   nameText: {
-    padding: 10,
     fontSize: 20,
+    fontWeight: "bold",
+    marginHorizontal: 5,
+  },
+  editProfile: {
+    backgroundColor: "#434371",
+    paddingHorizontal: 30,
+    paddingVertical: 5,
+    borderRadius: 5,
+    marginVertical: 10,
+  },
+  editText: {
+    color: "white",
+    fontSize: 18,
   },
   bioView: {
     alignItems: "flex-start",
@@ -97,48 +167,45 @@ const styles = StyleSheet.create({
     width: "90%",
   },
   header: {
-    padding: 5,
     fontSize: 20,
+    marginBottom: 5,
   },
   bioBodyContainer: {
     backgroundColor: "#D9D9D9",
     padding: 10,
     borderRadius: 10,
     width: "100%",
-    
   },
   bioBodyText: {
     fontSize: 16,
-    lineHeight: 16 * 1.3,
+    lineHeight: 20,
   },
-  editProfile: {
-    backgroundColor: "#434371",
-    paddingHorizontal: 30,
-    padding: 2,
-    borderRadius: 5,
-  },
-  editText: {
-    fontSize: 20,
-    color: "white",
-  },
-
   handicapContainer: {
     alignItems: "center",
     paddingTop: 25,
   },
-
   handicapImage: {
     width: 200,
     height: 200,
     justifyContent: "center",
     alignItems: "center",
   },
-
   handicapText: {
     color: "white",
-    fontSize: 40
-  }
-
+    fontSize: 40,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#434371",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#434371",
+  },
 });
 
 export default ProfileScreen;
