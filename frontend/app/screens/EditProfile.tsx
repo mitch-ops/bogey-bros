@@ -118,7 +118,7 @@ const EditProfileScreen = ({ navigation }) => {
       });
 
       Alert.alert("Success", "Profile updated!");
-      navigation.navigate('Profile', { refresh: true });
+      navigation.goBack();
     } catch (err) {
       console.error("Save profile error:", err);
       Alert.alert("Error", "Something went wrong while saving your profile.");

@@ -1,101 +1,97 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
+  ScrollView,
   Image,
   TouchableOpacity,
   StyleSheet,
   ImageBackground,
   Alert,
-  ScrollView,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
-import { useAuth } from "../context/AuthContext";
-import { API_URL } from "../context/AuthContext";
-import defaultAvatar from "../../assets/defaultpfp.jpg"; // fallback if no avatar
+import { API_URL, useAuth } from "../context/AuthContext";
+import { useFocusEffect } from "@react-navigation/native"; // <-- ADD THIS
 import golfBackground from "../../assets/GolfballBackground.png";
+import defaultAvatar from "../../assets/defaultpfp.jpg";
 
 const ProfileScreen = ({ navigation }) => {
   const { authState, refreshAuthToken } = useAuth();
-  const [profileData, setProfileData] = useState<any>(null);
+  const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const fetchProfile = async () => {
+  const fetchUserData = async () => {
+    if (!authState?.authenticated) return;
     try {
       setLoading(true);
-      await refreshAuthToken?.();
+      refreshAuthToken!();
       const response = await fetch(`${API_URL}/user`, {
         headers: {
           Authorization: `Bearer ${authState?.token}`,
         },
       });
-
       if (!response.ok) throw new Error("Failed to fetch user data");
 
       const data = await response.json();
-      setProfileData(data);
-
-      if (data.profilePicture) {
-        setAvatarUri(`data:image/jpeg;base64,${data.profilePicture}`);
-      }
+      setUserData(data);
     } catch (error) {
-      console.error("Profile fetch error:", error);
-
-      Alert.alert(
-        "Failed to load profile",
-        "Something went wrong while fetching your profile. Please try again.",
-        [
-          {
-            text: "Retry",
-            onPress: () => fetchProfile(),
-          },
-          {
-            text: "Cancel",
-            style: "cancel",
-          },
-        ]
-      );
+      console.error("Failed fetching user data:", error);
+      Alert.alert("Error", "Could not fetch profile info.");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
+  // Fetch data ONCE when component mounts
   useEffect(() => {
-    fetchProfile();
+    fetchUserData();
   }, []);
+
+  // Refresh data every time screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchUserData();
+    }, [])
+  );
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchUserData();
+  };
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FFFFFF" />
-      </View>
-    );
-  }
-
-  if (!profileData) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={{ color: "white" }}>No profile data available.</Text>
+        <ActivityIndicator size="large" color="#434371" />
       </View>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    >
       {/* Avatar */}
       <Image
         style={styles.avatar}
-        source={avatarUri ? { uri: avatarUri } : defaultAvatar}
+        source={
+          userData?.profilePicture
+            ? { uri: `data:image/jpeg;base64,${userData.profilePicture}` }
+            : defaultAvatar
+        }
       />
 
       {/* Name */}
       <View style={styles.nameView}>
-        <Text style={styles.nameText}>{profileData.firstName}</Text>
-        <Text style={styles.nameText}>{profileData.lastName}</Text>
+        <Text style={styles.nameText}>{userData?.firstName || "First"}</Text>
+        <Text style={styles.nameText}>{userData?.lastName || "Last"}</Text>
       </View>
 
-      {/* Edit Button */}
+      {/* Edit Profile Button */}
       <TouchableOpacity
         style={styles.editProfile}
         onPress={() => navigation.navigate("EditView")}
@@ -108,7 +104,7 @@ const ProfileScreen = ({ navigation }) => {
         <Text style={styles.header}>Bio:</Text>
         <View style={styles.bioBodyContainer}>
           <Text style={styles.bioBodyText}>
-            {profileData.bio || "No bio provided."}
+            {userData?.bio || "Write something about yourself!"}
           </Text>
         </View>
       </View>
@@ -118,7 +114,7 @@ const ProfileScreen = ({ navigation }) => {
         <Text style={styles.header}>Handicap</Text>
         <ImageBackground style={styles.handicapImage} source={golfBackground}>
           <Text style={styles.handicapText}>
-            {profileData.handicap ?? "N/A"}
+            {userData?.handicap != null ? userData.handicap : "N/A"}
           </Text>
         </ImageBackground>
       </View>
@@ -127,85 +123,20 @@ const ProfileScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    padding: 20,
-    alignItems: "center",
-    backgroundColor: "#fff", 
-  },
-  avatar: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    borderWidth: 4,
-    borderColor: "#434371",
-    marginBottom: 10,
-  },
-  nameView: {
-    flexDirection: "row",
-    marginBottom: 10,
-  },
-  nameText: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginHorizontal: 5,
-  },
-  editProfile: {
-    backgroundColor: "#434371",
-    paddingHorizontal: 30,
-    paddingVertical: 5,
-    borderRadius: 5,
-    marginVertical: 10,
-  },
-  editText: {
-    color: "white",
-    fontSize: 18,
-  },
-  bioView: {
-    alignItems: "flex-start",
-    paddingTop: 20,
-    width: "90%",
-  },
-  header: {
-    fontSize: 20,
-    marginBottom: 5,
-  },
-  bioBodyContainer: {
-    backgroundColor: "#D9D9D9",
-    padding: 10,
-    borderRadius: 10,
-    width: "100%",
-  },
-  bioBodyText: {
-    fontSize: 16,
-    lineHeight: 20,
-  },
-  handicapContainer: {
-    alignItems: "center",
-    paddingTop: 25,
-  },
-  handicapImage: {
-    width: 200,
-    height: 200,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  handicapText: {
-    color: "white",
-    fontSize: 40,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#434371",
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#434371",
-  },
+  container: { flexGrow: 1, padding: 20, alignItems: "center" },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#fff" },
+  avatar: { width: 150, height: 150, borderRadius: 75, borderWidth: 4, borderColor: "#434371", marginBottom: 10 },
+  nameView: { flexDirection: "row" },
+  nameText: { padding: 10, fontSize: 20 },
+  editProfile: { backgroundColor: "#434371", paddingHorizontal: 30, paddingVertical: 5, borderRadius: 5 },
+  editText: { fontSize: 20, color: "white" },
+  bioView: { alignItems: "flex-start", paddingTop: 20, width: "90%" },
+  header: { padding: 5, fontSize: 20 },
+  bioBodyContainer: { backgroundColor: "#D9D9D9", padding: 10, borderRadius: 10, width: "100%" },
+  bioBodyText: { fontSize: 16, lineHeight: 16 * 1.3 },
+  handicapContainer: { alignItems: "center", paddingTop: 25 },
+  handicapImage: { width: 200, height: 200, justifyContent: "center", alignItems: "center" },
+  handicapText: { color: "white", fontSize: 40 },
 });
 
 export default ProfileScreen;
