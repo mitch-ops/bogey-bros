@@ -89,7 +89,7 @@ const TabHomeScreen = () => {
         </View>
       </Modal>
       
-      {activities.length === 0 ? 
+      {friendActivity.length === 0 ? 
         (
           <View style={{ flex: 1, alignItems: 'center'}}>
             <Image source={Golfers} style={{height: 400, width: 400,}}>
