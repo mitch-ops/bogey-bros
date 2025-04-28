@@ -37,7 +37,13 @@ export const Layout = () => {
             name="Bogey Bros"
             component={TabNavigator}
             options={{
-              headerRight: () => <Button onPress={onLogout} title="Sign Out" />,
+              headerRight: () => <Button onPress={onLogout} title="Sign Out" color="white"/>,
+              headerStyle: {
+                backgroundColor: "#434371",
+              },
+              headerTitleStyle: {
+                color: "white",
+              },
             }}
           ></Stack.Screen>
         ) : (
